@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(ADMIN)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?    @db.Text
+  icon        String?    @default("Briefcase") // Nome do ícone Lucide ou emoji
+  order       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  providers   Provider[]
+
+  @@map("categories")
+}
+
+model Provider {
+  id           String   @id @default(uuid())
+  name         String   // Nome da Empresa ou Profissional
+  slug         String   @unique
+  cnpj         String?  // CNPJ ou CPF formatado
+  phone        String?  // Telefone Fixo
+  whatsapp     String?  // WhatsApp (com DDD)
+  email        String?  // E-mail de contato
+  website      String?  // URL do site
+  instagram    String?  // @ ou URL do Instagram
+  
+  // Endereço
+  address      String?  // Rua, número, complemento
+  neighborhood String?  // Bairro
+  city         String   // Cidade (ex: São Paulo)
+  state        String   // UF (ex: SP)
+  zipCode      String?  // CEP
+  
+  // Detalhes
+  description  String?  @db.Text // Descrição detalhada dos serviços
+  services     String?  @db.Text // Lista de serviços (separados por vírgula ou JSON)
+  logoUrl      String?  @db.Text // URL da foto / logo
+  coverUrl     String?  @db.Text // Foto de capa / fachada
+  
+  // Status
+  isFeatured   Boolean  @default(false) // Destaque na home
+  isActive     Boolean  @default(true)  // Ativo / Inativo
+  viewsCount   Int      @default(0)     // Contador de cliques/visualizações
+  
+  // Relacionamento com Categoria
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([city, state])
+  @@index([isActive])
+  @@map("providers")
+}
