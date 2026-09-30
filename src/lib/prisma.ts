@@ -521,14 +521,16 @@ function attachCategoryProviders(category: MockCategory, include?: any) {
   return result;
 }
 
-const shouldUseRealPrisma = process.env.USE_REAL_PRISMA === 'true';
+const shouldUseRealPrisma = Boolean(process.env.DATABASE_URL) && process.env.USE_REAL_PRISMA !== 'false';
 
 let globalPrismaClient: PrismaClient | null = null;
 if (shouldUseRealPrisma) {
   try {
     const globalForPrisma = globalThis as unknown as { prismaClient?: PrismaClient };
     if (!globalForPrisma.prismaClient) {
-      globalForPrisma.prismaClient = new PrismaClient();
+      globalForPrisma.prismaClient = new PrismaClient({
+        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+      });
     }
     globalPrismaClient = globalForPrisma.prismaClient;
   } catch (e) {

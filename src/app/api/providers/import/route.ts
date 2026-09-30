@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   try {
     const session = await getSessionUser(request);
     if (!session) {
-      return NextResponse.json({ error: 'Não autorizado. Faça login novamente.' }, { status: 401 });
+      return NextResponse.json({ error: 'Não autorizado. Faça login novamente no painel.' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Carregar todas as categorias existentes para correspondência rápida
+    // Carregar todas as categorias existentes do banco para correspondência rápida
     const allCategories = await prisma.category.findMany();
     const categoryMap = new Map<string, string>(); // Chave normalizada -> categoryId
 
@@ -62,35 +62,40 @@ export async function POST(request: Request) {
         if (categoryMap.has(normalizedCat)) {
           categoryId = categoryMap.get(normalizedCat);
         } else {
-          // Criar nova categoria automaticamente
+          // Criar ou localizar categoria no banco
           const catName = String(rawCategory).trim();
           let catSlug = slugify(catName) || `categoria-${Date.now()}`;
 
-          // Evitar slug duplicado para categoria
-          const existingSlug = allCategories.find((c) => c.slug === catSlug);
-          if (existingSlug) {
-            catSlug = `${catSlug}-${Math.floor(Math.random() * 1000)}`;
-          }
-
-          const newCategory = await prisma.category.create({
-            data: {
-              name: catName,
-              slug: catSlug,
-              description: `Categoria de ${catName}`,
-              icon: 'Briefcase',
-              order: allCategories.length + 1,
+          // Verificar se já existe no banco
+          let existingCategory = await prisma.category.findFirst({
+            where: {
+              OR: [{ name: catName }, { slug: catSlug }],
             },
           });
 
-          allCategories.push(newCategory);
-          categoryId = newCategory.id;
-          categoryMap.set(catName.toLowerCase(), newCategory.id);
-          categoryMap.set(newCategory.slug.toLowerCase(), newCategory.id);
-          categoryMap.set(newCategory.id.toLowerCase(), newCategory.id);
+          if (existingCategory) {
+            categoryId = existingCategory.id;
+          } else {
+            const currentCatCount = await prisma.category.count();
+            const newCategory = await prisma.category.create({
+              data: {
+                name: catName,
+                slug: catSlug,
+                description: `Serviços especializados em ${catName}`,
+                icon: 'Briefcase',
+                order: currentCatCount + 1,
+              },
+            });
+            categoryId = newCategory.id;
+          }
+
+          categoryMap.set(catName.toLowerCase(), categoryId);
+          categoryMap.set(normalizedCat, categoryId);
         }
 
         if (!categoryId) {
-          categoryId = allCategories[0]?.id;
+          const firstCat = await prisma.category.findFirst();
+          categoryId = firstCat?.id;
         }
 
         // Gerar slug único para o prestador
@@ -138,11 +143,12 @@ export async function POST(request: Request) {
 
         results.successCount++;
       } catch (err: any) {
+        console.error(`Erro ao importar linha ${rowNumber}:`, err);
         results.failedCount++;
         results.errors.push({
           row: rowNumber,
           name: row.name,
-          message: err.message || 'Erro desconhecido ao salvar prestador.',
+          message: err.message || 'Erro ao gravar prestador no banco.',
         });
       }
     }
@@ -153,7 +159,7 @@ export async function POST(request: Request) {
       failedCount: results.failedCount,
       total: providers.length,
       errors: results.errors,
-      message: `${results.successCount} prestador(es) importado(s) com sucesso.`,
+      message: `${results.successCount} prestador(es) importado(s) e salvo(s) com sucesso.`,
     });
   } catch (error: any) {
     console.error('Erro na rota de importação:', error);
