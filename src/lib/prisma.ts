@@ -521,7 +521,74 @@ function attachCategoryProviders(category: MockCategory, include?: any) {
   return result;
 }
 
-export const prisma = {
+const shouldUseRealPrisma = process.env.USE_REAL_PRISMA === 'true';
+
+let globalPrismaClient: PrismaClient | null = null;
+if (shouldUseRealPrisma) {
+  try {
+    const globalForPrisma = globalThis as unknown as { prismaClient?: PrismaClient };
+    if (!globalForPrisma.prismaClient) {
+      globalForPrisma.prismaClient = new PrismaClient();
+    }
+    globalPrismaClient = globalForPrisma.prismaClient;
+  } catch (e) {
+    console.warn('[Prisma] Error creating PrismaClient instance, falling back to mock:', e);
+  }
+}
+
+function createSafePrismaClient(realClient: PrismaClient, fallbackMock: any): PrismaClient {
+  return new Proxy(fallbackMock, {
+    get(target, prop) {
+      if (prop === '$disconnect') {
+        return async () => {
+          try {
+            await realClient.$disconnect();
+          } catch {}
+        };
+      }
+      const realTarget = (realClient as any)[prop];
+      const mockTarget = target[prop];
+
+      if (!realTarget) return mockTarget;
+      if (typeof realTarget === 'function') {
+        return async (...args: any[]) => {
+          try {
+            return await realTarget.apply(realClient, args);
+          } catch (err: any) {
+            console.warn(`[Prisma Safe Mode] Fallback on ${String(prop)}:`, err?.message || err);
+            return typeof mockTarget === 'function' ? mockTarget.apply(target, args) : mockTarget;
+          }
+        };
+      }
+
+      // If it's a model like user, category, provider
+      return new Proxy(mockTarget || {}, {
+        get(mTarget, mProp) {
+          const realMethod = realTarget[mProp];
+          const mockMethod = mTarget[mProp];
+          if (typeof realMethod !== 'function') return mockMethod;
+
+          return async (...args: any[]) => {
+            try {
+              return await realMethod.apply(realTarget, args);
+            } catch (err: any) {
+              console.warn(
+                `[Prisma Safe Mode] Connection failed on ${String(prop)}.${String(mProp)}, using in-memory store:`,
+                err?.message || err
+              );
+              if (typeof mockMethod === 'function') {
+                return await mockMethod.apply(mTarget, args);
+              }
+              return null;
+            }
+          };
+        },
+      });
+    },
+  });
+}
+
+const mockPrisma = {
   $disconnect: async () => {},
 
   user: {
@@ -773,7 +840,7 @@ export const prisma = {
       }
       const now = new Date();
       const newProv: MockProvider = {
-        id: args.create.id || `prov_${Date.now()}`,
+        id: args.create.id || generateUniqueId('prov'),
         ...args.create,
         viewsCount: 0,
         createdAt: now,
@@ -783,4 +850,9 @@ export const prisma = {
       return { ...newProv };
     },
   },
-} as unknown as PrismaClient;
+};
+
+export const prisma: PrismaClient = (
+  globalPrismaClient ? createSafePrismaClient(globalPrismaClient, mockPrisma) : mockPrisma
+) as unknown as PrismaClient;
+
