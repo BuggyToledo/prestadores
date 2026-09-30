@@ -169,7 +169,7 @@ export default async function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
-              {recentProviders.map((provider) => (
+              {recentProviders.map((provider: any) => (
                 <tr key={provider.id} className="hover:bg-slate-50/70 transition-colors">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
