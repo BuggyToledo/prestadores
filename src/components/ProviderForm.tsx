@@ -22,9 +22,16 @@ import {
 } from 'lucide-react';
 import { authFetch } from '@/lib/apiClient';
 
+interface Subcategory {
+  id: string;
+  name: string;
+  categoryId: string;
+}
+
 interface Category {
   id: string;
   name: string;
+  subcategories?: Subcategory[];
 }
 
 interface ProviderFormProps {
@@ -43,6 +50,7 @@ export function ProviderForm({ initialData, isEdit = false }: ProviderFormProps)
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     categoryId: initialData?.categoryId || '',
+    subcategoryId: initialData?.subcategoryId || '',
     cnpj: initialData?.cnpj || '',
     phone: initialData?.phone || '',
     whatsapp: initialData?.whatsapp || '',
@@ -75,11 +83,17 @@ export function ProviderForm({ initialData, isEdit = false }: ProviderFormProps)
       .finally(() => setLoadingCategories(false));
   }, []);
 
+  const selectedCategory = categories.find((c) => c.id === formData.categoryId);
+  const currentSubcategories = selectedCategory?.subcategories || [];
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData((prev) => ({ ...prev, [name]: checked }));
+    } else if (name === 'categoryId') {
+      // Quando muda categoria, limpar subcategoria para evitar dados inconsistentes
+      setFormData((prev) => ({ ...prev, categoryId: value, subcategoryId: '' }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -163,7 +177,7 @@ export function ProviderForm({ initialData, isEdit = false }: ProviderFormProps)
           {/* Categoria */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-              Categoria do Serviço <span className="text-red-500">*</span>
+              Categoria Principal <span className="text-red-500">*</span>
             </label>
             <select
               name="categoryId"
@@ -184,8 +198,33 @@ export function ProviderForm({ initialData, isEdit = false }: ProviderFormProps)
             </select>
           </div>
 
-          {/* CNPJ / CPF */}
+          {/* Subcategoria */}
           <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+              Subcategoria (Opcional)
+            </label>
+            <select
+              name="subcategoryId"
+              value={formData.subcategoryId}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-slate-900 font-medium cursor-pointer"
+            >
+              <option value="">Nenhuma / Geral</option>
+              {currentSubcategories.map((sub) => (
+                <option key={sub.id} value={sub.id}>
+                  {sub.name}
+                </option>
+              ))}
+            </select>
+            {currentSubcategories.length === 0 && !loadingCategories && (
+              <p className="text-[11px] text-slate-400 mt-1">
+                Nenhuma subcategoria cadastrada nesta categoria.
+              </p>
+            )}
+          </div>
+
+          {/* CNPJ / CPF */}
+          <div className="sm:col-span-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
               CNPJ ou CPF (Opcional)
             </label>

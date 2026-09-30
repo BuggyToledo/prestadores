@@ -18,11 +18,15 @@ export default async function CategoryPage({ params }: PageProps) {
   const category = await prisma.category.findUnique({
     where: { slug },
     include: {
+      subcategories: {
+        orderBy: [{ order: 'asc' }, { name: 'asc' }],
+      },
       providers: {
         where: { isActive: true },
         orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
         include: {
           category: true,
+          subcategory: true,
         },
       },
     },
@@ -63,6 +67,23 @@ export default async function CategoryPage({ params }: PageProps) {
                 <p className="text-sm sm:text-base text-slate-600 mt-2 max-w-2xl leading-relaxed">
                   {category.description}
                 </p>
+              )}
+
+              {/* Badges de Subcategorias */}
+              {category.subcategories && category.subcategories.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-slate-100">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Especialidades:
+                  </span>
+                  {category.subcategories.map((sub) => (
+                    <span
+                      key={sub.id}
+                      className="bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold px-2.5 py-1 rounded-lg"
+                    >
+                      {sub.name}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           </div>

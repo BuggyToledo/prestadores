@@ -40,6 +40,11 @@ export interface ProviderItem {
     slug: string;
     icon?: string | null;
   };
+  subcategory?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 }
 
 interface ProviderCardProps {
@@ -91,13 +96,20 @@ export function ProviderCard({ provider }: ProviderCardProps) {
 
           {/* Info Principal */}
           <div className="flex-1 min-w-0">
-            <Link
-              href={`/categoria/${provider.category.slug}`}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-0.5 rounded-md transition-colors mb-1.5"
-            >
-              <CategoryIcon name={provider.category.icon} className="w-3 h-3" />
-              <span>{provider.category.name}</span>
-            </Link>
+            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+              <Link
+                href={`/categoria/${provider.category.slug}`}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-0.5 rounded-md transition-colors"
+              >
+                <CategoryIcon name={provider.category.icon} className="w-3 h-3" />
+                <span>{provider.category.name}</span>
+              </Link>
+              {provider.subcategory && (
+                <span className="inline-flex items-center text-[10px] font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                  {provider.subcategory.name}
+                </span>
+              )}
+            </div>
 
             <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-1">
               <Link href={`/prestador/${provider.slug}`}>{provider.name}</Link>

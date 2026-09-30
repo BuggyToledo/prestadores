@@ -81,6 +81,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       { neighborhood: { contains: term } },
       { city: { contains: term } },
       { category: { name: { contains: term } } },
+      { subcategory: { name: { contains: term } } },
     ];
   }
 
@@ -90,6 +91,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       where: whereFilter,
       include: {
         category: true,
+        subcategory: true,
       },
       orderBy: [
         { isFeatured: 'desc' },

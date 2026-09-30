@@ -32,17 +32,34 @@ model User {
 }
 
 model Category {
-  id          String     @id @default(uuid())
-  name        String     @unique
-  slug        String     @unique
-  description String?    @db.Text
-  icon        String?    @default("Briefcase")
-  order       Int        @default(0)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  providers   Provider[]
+  id            String        @id @default(uuid())
+  name          String        @unique
+  slug          String        @unique
+  description   String?       @db.Text
+  icon          String?       @default("Briefcase")
+  order         Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  providers     Provider[]
+  subcategories Subcategory[]
 
   @@map("categories")
+}
+
+model Subcategory {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String     @unique
+  description String?    @db.Text
+  order       Int        @default(0)
+  categoryId  String
+  category    Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  providers   Provider[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([categoryId])
+  @@map("subcategories")
 }
 
 model Provider {
@@ -74,14 +91,17 @@ model Provider {
   isActive     Boolean  @default(true)
   viewsCount   Int      @default(0)
   
-  // Relacionamento com Categoria
-  categoryId   String
-  category     Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  // Relacionamento com Categoria e Subcategoria
+  categoryId    String
+  category      Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  subcategoryId String?
+  subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([categoryId])
+  @@index([subcategoryId])
   @@index([city, state])
   @@index([isActive])
   @@map("providers")

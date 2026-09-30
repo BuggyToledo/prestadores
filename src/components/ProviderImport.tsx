@@ -20,6 +20,7 @@ import { authFetch } from '@/lib/apiClient';
 interface ParsedProvider {
   name: string;
   category: string;
+  subcategory?: string;
   city: string;
   state: string;
   phone?: string;
@@ -54,12 +55,12 @@ export function ProviderImport() {
   // Função para baixar o modelo de exemplo diretamente no navegador
   const handleDownloadSample = () => {
     const csvContent =
-      '\uFEFFNome;Categoria;Cidade;Estado;Telefone;WhatsApp;Email;Endereco;Bairro;CEP;CNPJ;Site;Instagram;Descricao;Servicos;Destaque\n' +
-      'Apex Engenharia Predial;Manutenção Predial;São Paulo;SP;(11) 3214-5500;(11) 98765-4321;contato@apexpredial.com.br;Av. Paulista, 1000;Bela Vista;01310-100;12.345.678/0001-90;https://apexpredial.com.br;@apexpredial;Especializada em reformas de fachadas, impermeabilização e manutenção condominial.;Impermeabilização, Restauração de Fachadas, Pintura Externa;SIM\n' +
-      'Volts Engenharia Elétrica;Eletricista;Rio de Janeiro;RJ;(21) 2555-8900;(21) 99887-1122;atendimento@voltseng.com.br;Rua Barata Ribeiro, 450;Copacabana;22040-001;98.765.432/0001-10;;@volts.eletrica;Laudos elétricos para condomínios, adequação de PC, SPDA e termografia.;Laudo Elétrico, SPDA, Pára-raios, Adequação de PC;SIM\n' +
-      'Drenosul Desentupidora;Encanador;Porto Alegre;RS;(51) 3344-9988;(51) 98111-2233;contato@drenosul.com.br;Av. Ipiranga, 6600;Partenon;90619-900;;;;Desentupimento preventivo de prumadas, hidrojateamento e caça-vazamentos.;Desentupimento de Prumadas, Hidrojateamento, Vídeo Inspeção;NAO\n' +
-      'SegurTech Portaria e CFTV;Segurança e CFTV;Belo Horizonte;MG;(31) 3456-7890;(31) 98877-6655;comercial@segurtech.com.br;Av. do Contorno, 5000;Funcionários;30110-028;45.678.901/0001-23;https://segurtech.com.br;@segurtech;Instalação e manutenção de portaria eletrônica, interfonia e câmeras de monitoramento.;Controle de Acesso, Câmeras IP, Interfonia Condominial;SIM\n' +
-      'Verde Vida Paisagismo Condominial;Jardinagem;Curitiba;PR;(41) 3012-3344;(41) 99123-4567;contato@verdevida.com;Rua XV de Novembro, 1200;Centro;80060-000;;;@verdevida.jardins;Manutenção de jardins e áreas verdes para condomínios residenciais e comerciais.;Corte de Grama, Poda de Árvores, Plantio de Flores, Irrigação;NAO\n';
+      '\uFEFFNome;Categoria;Subcategoria;Cidade;Estado;Telefone;WhatsApp;Email;Endereco;Bairro;CEP;CNPJ;Site;Instagram;Descricao;Servicos;Destaque\n' +
+      'Apex Engenharia Predial;Manutenção Predial;Reformas de Fachadas;São Paulo;SP;(11) 3214-5500;(11) 98765-4321;contato@apexpredial.com.br;Av. Paulista, 1000;Bela Vista;01310-100;12.345.678/0001-90;https://apexpredial.com.br;@apexpredial;Especializada em reformas de fachadas, impermeabilização e manutenção condominial.;Impermeabilização, Restauração de Fachadas, Pintura Externa;SIM\n' +
+      'Volts Engenharia Elétrica;Eletricista;Laudos e SPDA;Rio de Janeiro;RJ;(21) 2555-8900;(21) 99887-1122;atendimento@voltseng.com.br;Rua Barata Ribeiro, 450;Copacabana;22040-001;98.765.432/0001-10;;@volts.eletrica;Laudos elétricos para condomínios, adequação de PC, SPDA e termografia.;Laudo Elétrico, SPDA, Pára-raios, Adequação de PC;SIM\n' +
+      'Drenosul Desentupidora;Encanador;Caça-Vazamentos;Porto Alegre;RS;(51) 3344-9988;(51) 98111-2233;contato@drenosul.com.br;Av. Ipiranga, 6600;Partenon;90619-900;;;;Desentupimento preventivo de prumadas, hidrojateamento e caça-vazamentos.;Desentupimento de Prumadas, Hidrojateamento, Vídeo Inspeção;NAO\n' +
+      'SegurTech Portaria e CFTV;Segurança e CFTV;Controle de Acesso;Belo Horizonte;MG;(31) 3456-7890;(31) 98877-6655;comercial@segurtech.com.br;Av. do Contorno, 5000;Funcionários;30110-028;45.678.901/0001-23;https://segurtech.com.br;@segurtech;Instalação e manutenção de portaria eletrônica, interfonia e câmeras de monitoramento.;Controle de Acesso, Câmeras IP, Interfonia Condominial;SIM\n' +
+      'Verde Vida Paisagismo Condominial;Jardinagem;Manutenção de Jardins;Curitiba;PR;(41) 3012-3344;(41) 99123-4567;contato@verdevida.com;Rua XV de Novembro, 1200;Centro;80060-000;;;@verdevida.jardins;Manutenção de jardins e áreas verdes para condomínios residenciais e comerciais.;Corte de Grama, Poda de Árvores, Plantio de Flores, Irrigação;NAO\n';
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -141,6 +142,7 @@ export function ProviderImport() {
 
       const idxName = findIndex(['nome', 'prestador', 'empresa', 'profissional', 'razao']);
       const idxCategory = findIndex(['categoria', 'segmento', 'ramo', 'servico principal']);
+      const idxSubcategory = findIndex(['subcategoria', 'sub-categoria', 'sub categoria', 'especialidade']);
       const idxCity = findIndex(['cidade', 'municipio']);
       const idxState = findIndex(['estado', 'uf']);
       const idxPhone = findIndex(['telefone', 'fone', 'tel']);
@@ -170,6 +172,7 @@ export function ProviderImport() {
         if (!name) continue;
 
         const category = idxCategory !== -1 ? row[idxCategory] || 'Geral' : 'Geral';
+        const subcategory = idxSubcategory !== -1 ? row[idxSubcategory] || '' : '';
         const city = idxCity !== -1 ? row[idxCity] || 'São Paulo' : 'São Paulo';
         const state = idxState !== -1 ? row[idxState] || 'SP' : 'SP';
         const phone = idxPhone !== -1 ? row[idxPhone] : '';
@@ -193,6 +196,7 @@ export function ProviderImport() {
         parsed.push({
           name,
           category,
+          subcategory,
           city,
           state,
           phone,
@@ -475,7 +479,7 @@ export function ProviderImport() {
                 <tr>
                   <th className="py-3 px-4">#</th>
                   <th className="py-3 px-4">Prestador</th>
-                  <th className="py-3 px-4">Categoria</th>
+                  <th className="py-3 px-4">Categoria / Subcategoria</th>
                   <th className="py-3 px-4">Localização</th>
                   <th className="py-3 px-4">Contato</th>
                   <th className="py-3 px-4">Destaque</th>
@@ -492,9 +496,16 @@ export function ProviderImport() {
                       {row.cnpj && <div className="text-[10px] text-slate-400">CNPJ: {row.cnpj}</div>}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="inline-block bg-slate-100 text-slate-800 text-[11px] font-semibold px-2 py-0.5 rounded-md">
-                        {row.category}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="inline-block bg-slate-100 text-slate-800 text-[11px] font-semibold px-2 py-0.5 rounded-md">
+                          {row.category}
+                        </span>
+                        {row.subcategory && (
+                          <span className="inline-block bg-amber-50 text-amber-800 border border-amber-200/60 text-[10px] font-medium px-1.5 py-0.5 rounded">
+                            ↳ {row.subcategory}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4">
                       <div>{row.city} / {row.state}</div>
@@ -543,7 +554,7 @@ export function ProviderImport() {
         </h4>
         <ul className="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
           <li><strong>Campos obrigatórios:</strong> Nome da empresa ou profissional. Se Cidade ou Estado não forem informados, serão preenchidos com os padrões (São Paulo/SP).</li>
-          <li><strong>Categorias:</strong> Se a categoria informada na planilha ainda não existir no catálogo, ela será <strong>criada automaticamente</strong> durante a importação.</li>
+          <li><strong>Categorias e Subcategorias:</strong> Se a categoria ou subcategoria informada na planilha ainda não existir no catálogo, ela será <strong>criada e associada automaticamente</strong> durante a importação.</li>
           <li><strong>Contatos:</strong> Preencha o WhatsApp com DDD para habilitar o botão de contato direto dos síndicos.</li>
           <li><strong>Destaque:</strong> Utilize <code>SIM</code> ou <code>NAO</code> para indicar se a empresa deve aparecer na seção de prestadores em destaque.</li>
         </ul>

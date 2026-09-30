@@ -20,14 +20,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // Carregar todas as categorias existentes do banco para correspondência rápida
-    const allCategories = await prisma.category.findMany();
+    // Carregar todas as categorias e subcategorias existentes do banco para correspondência rápida
+    const [allCategories, allSubcategories] = await Promise.all([
+      prisma.category.findMany(),
+      prisma.subcategory.findMany(),
+    ]);
+
     const categoryMap = new Map<string, string>(); // Chave normalizada -> categoryId
+    const subcategoryMap = new Map<string, string>(); // Chave normalizada `${catId}_${subName}` -> subcategoryId
 
     allCategories.forEach((cat) => {
       categoryMap.set(cat.id.toLowerCase(), cat.id);
       categoryMap.set(cat.name.toLowerCase().trim(), cat.id);
       categoryMap.set(cat.slug.toLowerCase().trim(), cat.id);
+    });
+
+    allSubcategories.forEach((sub) => {
+      const key = `${sub.categoryId}_${sub.name.toLowerCase().trim()}`;
+      subcategoryMap.set(key, sub.id);
+      subcategoryMap.set(`${sub.categoryId}_${sub.slug.toLowerCase().trim()}`, sub.id);
     });
 
     const results = {
@@ -45,6 +56,7 @@ export async function POST(request: Request) {
         const city = row.city ? String(row.city).trim() : 'São Paulo';
         const state = row.state ? String(row.state).trim().toUpperCase() : 'SP';
         const rawCategory = row.category || row.categoryName || row.categoryId || 'Geral';
+        const rawSubcategory = row.subcategory || row.subcategoria || row.subCategory || row.especialidade || '';
 
         if (!name) {
           results.failedCount++;
@@ -98,6 +110,42 @@ export async function POST(request: Request) {
           categoryId = firstCat?.id;
         }
 
+        // Encontrar ou criar subcategoria
+        let subcategoryId: string | null = null;
+        if (rawSubcategory && String(rawSubcategory).trim() && categoryId) {
+          const subName = String(rawSubcategory).trim();
+          const subKey = `${categoryId}_${subName.toLowerCase()}`;
+
+          if (subcategoryMap.has(subKey)) {
+            subcategoryId = subcategoryMap.get(subKey) || null;
+          } else {
+            let subSlug = slugify(subName) || `sub-${Date.now()}`;
+            const existingSub = await prisma.subcategory.findFirst({
+              where: {
+                categoryId,
+                OR: [{ name: subName }, { slug: subSlug }],
+              },
+            });
+
+            if (existingSub) {
+              subcategoryId = existingSub.id;
+            } else {
+              const count = await prisma.subcategory.count({ where: { categoryId } });
+              const newSub = await prisma.subcategory.create({
+                data: {
+                  name: subName,
+                  slug: `${categoryId.slice(0, 4)}-${subSlug}`,
+                  categoryId,
+                  order: count + 1,
+                },
+              });
+              subcategoryId = newSub.id;
+            }
+
+            subcategoryMap.set(subKey, subcategoryId);
+          }
+        }
+
         // Gerar slug único para o prestador
         const baseSlug = slugify(name) || `prestador-${Date.now()}`;
         let slug = baseSlug;
@@ -138,6 +186,7 @@ export async function POST(request: Request) {
             isFeatured,
             isActive: true,
             categoryId: categoryId!,
+            subcategoryId,
           },
         });
 

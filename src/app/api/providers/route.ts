@@ -11,6 +11,8 @@ export async function GET(request: Request) {
     const search = searchParams.get('q') || '';
     const categorySlug = searchParams.get('categoria') || '';
     const categoryId = searchParams.get('categoryId') || '';
+    const subcategorySlug = searchParams.get('subcategoria') || '';
+    const subcategoryId = searchParams.get('subcategoryId') || '';
     const city = searchParams.get('cidade') || '';
     const state = searchParams.get('uf') || '';
     const featuredOnly = searchParams.get('destaque') === 'true';
@@ -38,6 +40,14 @@ export async function GET(request: Request) {
       };
     }
 
+    if (subcategoryId) {
+      where.subcategoryId = subcategoryId;
+    } else if (subcategorySlug) {
+      where.subcategory = {
+        slug: subcategorySlug,
+      };
+    }
+
     if (city) {
       where.city = {
         contains: city,
@@ -57,6 +67,7 @@ export async function GET(request: Request) {
         { neighborhood: { contains: q } },
         { city: { contains: q } },
         { category: { name: { contains: q } } },
+        { subcategory: { name: { contains: q } } },
       ];
     }
 
@@ -71,6 +82,13 @@ export async function GET(request: Request) {
               name: true,
               slug: true,
               icon: true,
+            },
+          },
+          subcategory: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
             },
           },
         },
@@ -127,6 +145,7 @@ export async function POST(request: Request) {
       isFeatured,
       isActive,
       categoryId,
+      subcategoryId,
     } = body;
 
     if (!name || !city || !state || !categoryId) {
@@ -167,9 +186,11 @@ export async function POST(request: Request) {
         isFeatured: Boolean(isFeatured),
         isActive: isActive !== undefined ? Boolean(isActive) : true,
         categoryId,
+        subcategoryId: subcategoryId || null,
       },
       include: {
         category: true,
+        subcategory: true,
       },
     });
 

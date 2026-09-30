@@ -23,6 +23,17 @@ export interface MockCategory {
   updatedAt: Date;
 }
 
+export interface MockSubcategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  order: number;
+  categoryId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface MockProvider {
   id: string;
   name: string;
@@ -46,6 +57,7 @@ export interface MockProvider {
   isActive: boolean;
   viewsCount: number;
   categoryId: string;
+  subcategoryId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,6 +80,7 @@ export interface MockBanner {
 interface MockDatabase {
   users: MockUser[];
   categories: MockCategory[];
+  subcategories: MockSubcategory[];
   providers: MockProvider[];
   banners: MockBanner[];
 }
@@ -168,6 +181,19 @@ function initializeMockDb(): MockDatabase {
       createdAt: new Date('2024-01-01T00:00:00Z'),
       updatedAt: new Date('2024-01-01T00:00:00Z'),
     },
+  ];
+
+  const subcategories: MockSubcategory[] = [
+    { id: 'sub_elet_1', name: 'Instalação e Reparos', slug: 'elet-instalacao-reparos', description: null, order: 1, categoryId: 'cat_eletricistas', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'sub_elet_2', name: 'Laudos e SPDA', slug: 'elet-laudos-spda', description: null, order: 2, categoryId: 'cat_eletricistas', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'sub_elet_3', name: 'Padrão de Entrada', slug: 'elet-padrao-entrada', description: null, order: 3, categoryId: 'cat_eletricistas', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'sub_enc_1', name: 'Caça-Vazamentos', slug: 'enc-caca-vazamentos', description: null, order: 1, categoryId: 'cat_encanadores', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'sub_enc_2', name: 'Desentupimentos', slug: 'enc-desentupimentos', description: null, order: 2, categoryId: 'cat_encanadores', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'sub_enc_3', name: 'Prumadas e Tubulações', slug: 'enc-prumadas-tubulacoes', description: null, order: 3, categoryId: 'cat_encanadores', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'sub_pint_1', name: 'Pintura Residencial', slug: 'pint-residencial', description: null, order: 1, categoryId: 'cat_pintores', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'sub_pint_2', name: 'Restauração de Fachadas', slug: 'pint-fachadas', description: null, order: 2, categoryId: 'cat_pintores', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'sub_ar_1', name: 'Instalação de Split', slug: 'ar-instalacao-split', description: null, order: 1, categoryId: 'cat_ar-condicionado', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'sub_ar_2', name: 'Higienização e PMOC', slug: 'ar-higienizacao-pmoc', description: null, order: 2, categoryId: 'cat_ar-condicionado', createdAt: new Date(), updatedAt: new Date() },
   ];
 
   const providers: MockProvider[] = [
@@ -386,7 +412,7 @@ function initializeMockDb(): MockDatabase {
     },
   ];
 
-  return { users, categories, providers, banners };
+  return { users, categories, subcategories, providers, banners };
 }
 
 let idSequence = 0;
@@ -427,6 +453,9 @@ if (!globalForDb.__mockDatabase) {
 }
 
 const db = globalForDb.__mockDatabase!;
+if (!db.subcategories) {
+  db.subcategories = [];
+}
 sanitizeAndDeduplicateDb(db);
 
 function matchesWhere(item: any, where: any, dbRef: MockDatabase): boolean {
@@ -453,6 +482,13 @@ function matchesWhere(item: any, where: any, dbRef: MockDatabase): boolean {
       const cat = dbRef.categories.find((c) => c.id === item.categoryId);
       if (!cat) return false;
       if (!matchesWhere(cat, value, dbRef)) return false;
+      continue;
+    }
+
+    if (key === 'subcategory') {
+      const sub = dbRef.subcategories.find((s) => s.id === item.subcategoryId);
+      if (!sub) return false;
+      if (!matchesWhere(sub, value, dbRef)) return false;
       continue;
     }
 
@@ -521,24 +557,44 @@ function sortItems<T>(items: T[], orderBy: any): T[] {
 }
 
 function attachCategory(provider: MockProvider, include?: any) {
-  if (!include?.category) return { ...provider };
-  const cat = db.categories.find((c) => c.id === provider.categoryId);
-  if (!cat) return { ...provider, category: null };
-
-  if (include.category.select) {
-    const sel = include.category.select;
-    const selected: any = {};
-    for (const key of Object.keys(sel)) {
-      if (sel[key]) selected[key] = (cat as any)[key];
+  const res: any = { ...provider };
+  if (include?.category) {
+    const cat = db.categories.find((c) => c.id === provider.categoryId);
+    if (include.category.select) {
+      const sel = include.category.select;
+      const selected: any = {};
+      for (const key of Object.keys(sel)) {
+        if (sel[key]) selected[key] = (cat as any)?.[key];
+      }
+      res.category = selected;
+    } else {
+      res.category = cat ? { ...cat } : null;
     }
-    return { ...provider, category: selected };
   }
 
-  return { ...provider, category: { ...cat } };
+  if (include?.subcategory) {
+    const sub = db.subcategories.find((s) => s.id === provider.subcategoryId);
+    if (include.subcategory.select) {
+      const sel = include.subcategory.select;
+      const selected: any = {};
+      for (const key of Object.keys(sel)) {
+        if (sel[key]) selected[key] = (sub as any)?.[key];
+      }
+      res.subcategory = selected;
+    } else {
+      res.subcategory = sub ? { ...sub } : null;
+    }
+  }
+
+  return res;
 }
 
 function attachCategoryProviders(category: MockCategory, include?: any) {
   const result: any = { ...category };
+
+  if (include?.subcategories) {
+    result.subcategories = db.subcategories.filter((s) => s.categoryId === category.id);
+  }
 
   if (include?._count) {
     const pWhere = include._count.select?.providers?.where;
@@ -547,7 +603,10 @@ function attachCategoryProviders(category: MockCategory, include?: any) {
       if (pWhere && !matchesWhere(p, pWhere, db)) return false;
       return true;
     }).length;
-    result._count = { providers: count };
+    result._count = {
+      providers: count,
+      subcategories: db.subcategories.filter((s) => s.categoryId === category.id).length,
+    };
   }
 
   if (include?.providers) {
@@ -1004,6 +1063,79 @@ const mockPrisma = {
       const idx = db.banners.findIndex((b) => matchesWhere(b, args.where, db));
       if (idx === -1) throw new Error('Banner not found');
       const deleted = db.banners.splice(idx, 1)[0];
+      return { ...deleted };
+    },
+  },
+
+  subcategory: {
+    count: async (args?: { where?: any }) => {
+      if (!args?.where) return db.subcategories.length;
+      return db.subcategories.filter((s) => matchesWhere(s, args.where, db)).length;
+    },
+
+    findMany: async (args?: {
+      where?: any;
+      orderBy?: any;
+      include?: any;
+      skip?: number;
+      take?: number;
+    }) => {
+      let list = db.subcategories.filter((s) => matchesWhere(s, args?.where, db));
+      if (args?.orderBy) {
+        list = sortItems(list, args.orderBy);
+      }
+      if (args?.skip !== undefined && args.skip > 0) {
+        list = list.slice(args.skip);
+      }
+      if (args?.take !== undefined) {
+        list = list.slice(0, args.take);
+      }
+      return list;
+    },
+
+    findFirst: async (args?: { where?: any }) => {
+      const s = db.subcategories.find((sub) => matchesWhere(sub, args?.where, db));
+      return s || null;
+    },
+
+    findUnique: async (args: { where: any }) => {
+      const s = db.subcategories.find((sub) => matchesWhere(sub, args.where, db));
+      return s || null;
+    },
+
+    create: async (args: { data: any }) => {
+      const now = new Date();
+      const newSub: MockSubcategory = {
+        id: args.data.id || generateUniqueId('sub'),
+        name: args.data.name,
+        slug: args.data.slug,
+        description: args.data.description ?? null,
+        order: Number(args.data.order) || 0,
+        categoryId: args.data.categoryId,
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.subcategories.push(newSub);
+      return { ...newSub };
+    },
+
+    update: async (args: { where: any; data: any }) => {
+      const idx = db.subcategories.findIndex((s) => matchesWhere(s, args.where, db));
+      if (idx === -1) throw new Error('Subcategory not found');
+      const cur = db.subcategories[idx];
+      const updated: MockSubcategory = {
+        ...cur,
+        ...args.data,
+        updatedAt: new Date(),
+      };
+      db.subcategories[idx] = updated;
+      return { ...updated };
+    },
+
+    delete: async (args: { where: any }) => {
+      const idx = db.subcategories.findIndex((s) => matchesWhere(s, args.where, db));
+      if (idx === -1) throw new Error('Subcategory not found');
+      const deleted = db.subcategories.splice(idx, 1)[0];
       return { ...deleted };
     },
   },

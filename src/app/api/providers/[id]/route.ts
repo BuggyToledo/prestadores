@@ -18,6 +18,7 @@ export async function GET(request: Request, { params }: Params) {
       },
       include: {
         category: true,
+        subcategory: true,
       },
     });
 
@@ -62,6 +63,7 @@ export async function PUT(request: Request, { params }: Params) {
       isFeatured,
       isActive,
       categoryId,
+      subcategoryId,
     } = body;
 
     if (!name || !city || !state || !categoryId) {
@@ -118,9 +120,11 @@ export async function PUT(request: Request, { params }: Params) {
         isFeatured: Boolean(isFeatured),
         isActive: isActive !== undefined ? Boolean(isActive) : true,
         categoryId,
+        subcategoryId: subcategoryId || null,
       },
       include: {
         category: true,
+        subcategory: true,
       },
     });
 

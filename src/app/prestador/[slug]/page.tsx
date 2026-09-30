@@ -41,6 +41,7 @@ export default async function ProviderDetailPage({ params }: PageProps) {
     },
     include: {
       category: true,
+      subcategory: true,
     },
   });
 
@@ -137,10 +138,17 @@ export default async function ProviderDetailPage({ params }: PageProps) {
                   )}
                 </div>
 
-                <div className="space-y-1 mb-2">
-                  <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-md">
-                    <CategoryIcon name={provider.category.icon} className="w-3.5 h-3.5" />
-                    <span>{provider.category.name}</span>
+                <div className="space-y-1.5 mb-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-md">
+                      <CategoryIcon name={provider.category.icon} className="w-3.5 h-3.5" />
+                      <span>{provider.category.name}</span>
+                    </div>
+                    {provider.subcategory && (
+                      <span className="inline-flex items-center text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md">
+                        {provider.subcategory.name}
+                      </span>
+                    )}
                   </div>
                   <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                     {provider.name}
