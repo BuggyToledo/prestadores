@@ -23,37 +23,70 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const isLoginPage = pathname === '/admin/login';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminUser, setAdminUser] = useState<{ name: string; email: string } | null>(null);
-
-  // Não aplicar layout de sidebar na página de login
-  const isLoginPage = pathname === '/admin/login';
+  const [checkingAuth, setCheckingAuth] = useState(!isLoginPage);
 
   useEffect(() => {
     if (!isLoginPage) {
-      fetch('/api/auth/me')
-        .then((res) => (res.ok ? res.json() : null))
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+      const headers: Record<string, string> = {};
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      fetch('/api/auth/me', { headers })
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error('Não autenticado');
+          }
+          return res.json();
+        })
         .then((data) => {
           if (data?.user) {
             setAdminUser(data.user);
+            setCheckingAuth(false);
+          } else {
+            throw new Error('Sem usuário na sessão');
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_user');
+            window.location.href = `/admin/login?from=${encodeURIComponent(pathname)}`;
+          }
+        });
     }
-  }, [isLoginPage]);
+  }, [isLoginPage, pathname]);
 
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/admin/login');
-      router.refresh();
     } catch (e) {
       console.error(e);
+    } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        document.cookie = 'admin_session_token=; path=/; max-age=0; SameSite=None; Secure';
+        window.location.href = '/admin/login';
+      }
     }
   };
 
   if (isLoginPage) {
     return <>{children}</>;
+  }
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white gap-3">
+        <div className="w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-semibold text-slate-300">Carregando painel administrativo...</p>
+      </div>
+    );
   }
 
   const navItems = [
@@ -91,7 +124,7 @@ export default function AdminLayout({
           <div className="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center text-slate-950 font-black">
             <BookOpen className="w-4 h-4" />
           </div>
-          <span className="font-black text-sm tracking-tight">Admin Páginas Amarelas</span>
+          <span className="font-black text-sm tracking-tight">Admin Guia Síndico Né!</span>
         </div>
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -116,10 +149,10 @@ export default function AdminLayout({
               </div>
               <div>
                 <span className="font-black text-base text-white tracking-tight block">
-                  Páginas<span className="text-amber-400">Admin</span>
+                  Guia Síndico <span className="text-amber-400">Né!</span>
                 </span>
                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Painel de Controle
+                  Painel Administrativo
                 </span>
               </div>
             </Link>

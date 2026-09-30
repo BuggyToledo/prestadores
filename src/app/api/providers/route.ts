@@ -101,7 +101,7 @@ export async function GET(request: Request) {
 // Cadastrar novo prestador (Admin)
 export async function POST(request: Request) {
   try {
-    const session = await getSessionUser();
+    const session = await getSessionUser(request);
     if (!session) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
     }

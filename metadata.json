@@ -1,6 +1,6 @@
 {
-  "name": "Páginas Amarelas - Catálogo de Prestadores de Serviços",
-  "description": "Catálogo completo de prestadores de serviços: eletricistas, encanadores, pintores, marcenaria e mais com painel administrativo.",
+  "name": "Guia Síndico Né!",
+  "description": "Catálogo completo de prestadores de serviços para síndicos e condomínios com painel administrativo.",
   "permissions": [],
   "capabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

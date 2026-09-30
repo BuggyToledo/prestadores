@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   Star,
 } from 'lucide-react';
+import { authFetch } from '@/lib/apiClient';
 
 interface Category {
   id: string;
@@ -94,7 +95,7 @@ export function ProviderForm({ initialData, isEdit = false }: ProviderFormProps)
       const url = isEdit ? `/api/providers/${initialData.id}` : '/api/providers';
       const method = isEdit ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -174,8 +175,8 @@ export function ProviderForm({ initialData, isEdit = false }: ProviderFormProps)
               {loadingCategories ? (
                 <option>Carregando categorias...</option>
               ) : (
-                categories.map((c) => (
-                  <option key={c.id} value={c.id}>
+                categories.map((c, idx) => (
+                  <option key={`${c.id}-${idx}`} value={c.id}>
                     {c.name}
                   </option>
                 ))

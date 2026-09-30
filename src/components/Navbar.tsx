@@ -16,8 +16,8 @@ export function Navbar() {
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xl font-black tracking-tight text-slate-900">Páginas</span>
-                <span className="text-xl font-black tracking-tight text-amber-600">Amarelas</span>
+                <span className="text-xl font-black tracking-tight text-slate-900">Guia Síndico</span>
+                <span className="text-xl font-black tracking-tight text-amber-600">Né!</span>
               </div>
               <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500 -mt-1">
                 Guia de Prestadores de Serviços

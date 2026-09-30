@@ -1,0 +1,20 @@
+import { NextResponse } from 'next/server';
+
+const SAMPLE_CSV_CONTENT = `\uFEFFNome;Categoria;Cidade;Estado;Telefone;WhatsApp;Email;Endereco;Bairro;CEP;CNPJ;Site;Instagram;Descricao;Servicos;Destaque
+Apex Engenharia Predial;Manutenção Predial;São Paulo;SP;(11) 3214-5500;(11) 98765-4321;contato@apexpredial.com.br;Av. Paulista, 1000;Bela Vista;01310-100;12.345.678/0001-90;https://apexpredial.com.br;@apexpredial;Especializada em reformas de fachadas, impermeabilização e manutenção condominial.;Impermeabilização, Restauração de Fachadas, Pintura Externa;SIM
+Volts Engenharia Elétrica;Eletricista;Rio de Janeiro;RJ;(21) 2555-8900;(21) 99887-1122;atendimento@voltseng.com.br;Rua Barata Ribeiro, 450;Copacabana;22040-001;98.765.432/0001-10;;@volts.eletrica;Laudos elétricos para condomínios, adequação de PC, SPDA e termografia.;Laudo Elétrico, SPDA, Pára-raios, Adequação de PC;SIM
+Drenosul Desentupidora;Encanador;Porto Alegre;RS;(51) 3344-9988;(51) 98111-2233;contato@drenosul.com.br;Av. Ipiranga, 6600;Partenon;90619-900;;;;Desentupimento preventivo de prumadas, hidrojateamento e caça-vazamentos.;Desentupimento de Prumadas, Hidrojateamento, Vídeo Inspeção;NAO
+SegurTech Portaria e CFTV;Segurança e CFTV;Belo Horizonte;MG;(31) 3456-7890;(31) 98877-6655;comercial@segurtech.com.br;Av. do Contorno, 5000;Funcionários;30110-028;45.678.901/0001-23;https://segurtech.com.br;@segurtech;Instalação e manutenção de portaria eletrônica, interfonia e câmeras de monitoramento.;Controle de Acesso, Câmeras IP, Interfonia Condominial;SIM
+Verde Vida Paisagismo Condominial;Jardinagem;Curitiba;PR;(41) 3012-3344;(41) 99123-4567;contato@verdevida.com;Rua XV de Novembro, 1200;Centro;80060-000;;;@verdevida.jardins;Manutenção de jardins e áreas verdes para condomínios residenciais e comerciais.;Corte de Grama, Poda de Árvores, Plantio de Flores, Irrigação;NAO
+`;
+
+export async function GET() {
+  return new NextResponse(SAMPLE_CSV_CONTENT, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="modelo_importacao_prestadores.csv"',
+      'Cache-Control': 'no-store',
+    },
+  });
+}

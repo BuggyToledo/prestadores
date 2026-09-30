@@ -35,7 +35,7 @@ export async function GET(request: Request, { params }: Params) {
 // Atualizar prestador (Admin)
 export async function PUT(request: Request, { params }: Params) {
   try {
-    const session = await getSessionUser();
+    const session = await getSessionUser(request);
     if (!session) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
     }
@@ -134,7 +134,7 @@ export async function PUT(request: Request, { params }: Params) {
 // Excluir prestador (Admin)
 export async function DELETE(request: Request, { params }: Params) {
   try {
-    const session = await getSessionUser();
+    const session = await getSessionUser(request);
     if (!session) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
     }

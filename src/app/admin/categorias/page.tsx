@@ -14,6 +14,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { authFetch } from '@/lib/apiClient';
 
 const AVAILABLE_ICONS = [
   'Zap',
@@ -102,7 +103,7 @@ export default function AdminCategoriesPage() {
       const url = editingCategory ? `/api/categories/${editingCategory.id}` : '/api/categories';
       const method = editingCategory ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -129,7 +130,7 @@ export default function AdminCategoriesPage() {
     if (!deletingId) return;
     try {
       setSubmitting(true);
-      const res = await fetch(`/api/categories/${deletingId}`, {
+      const res = await authFetch(`/api/categories/${deletingId}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -190,9 +191,9 @@ export default function AdminCategoriesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {categories.map((cat) => (
+          {categories.map((cat, idx) => (
             <div
-              key={cat.id}
+              key={`${cat.id}-${idx}`}
               className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
             >
               <div>

@@ -170,11 +170,11 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
-          {categories.map((cat) => {
+          {categories.map((cat, idx) => {
             const isSelected = categoria === cat.slug;
             return (
               <Link
-                key={cat.id}
+                key={`${cat.id}-${idx}`}
                 href={isSelected ? '/' : `/?categoria=${cat.slug}#prestadores`}
                 className={`group p-4 sm:p-5 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
                   isSelected

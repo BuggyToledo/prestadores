@@ -342,6 +342,34 @@ function initializeMockDb(): MockDatabase {
   return { users, categories, providers };
 }
 
+let idSequence = 0;
+export function generateUniqueId(prefix: string): string {
+  idSequence++;
+  const timestamp = Date.now();
+  const rand = Math.random().toString(36).substring(2, 8);
+  return `${prefix}_${timestamp}_${idSequence}_${rand}`;
+}
+
+export function sanitizeAndDeduplicateDb(mockDb: MockDatabase) {
+  const seenCategoryIds = new Set<string>();
+  for (let i = 0; i < mockDb.categories.length; i++) {
+    const cat = mockDb.categories[i];
+    if (!cat.id || seenCategoryIds.has(cat.id)) {
+      cat.id = generateUniqueId('cat');
+    }
+    seenCategoryIds.add(cat.id);
+  }
+
+  const seenProviderIds = new Set<string>();
+  for (let i = 0; i < mockDb.providers.length; i++) {
+    const prov = mockDb.providers[i];
+    if (!prov.id || seenProviderIds.has(prov.id)) {
+      prov.id = generateUniqueId('prov');
+    }
+    seenProviderIds.add(prov.id);
+  }
+}
+
 // Global persistence across Next.js dev reloads
 const globalForDb = globalThis as unknown as {
   __mockDatabase?: MockDatabase;
@@ -352,6 +380,7 @@ if (!globalForDb.__mockDatabase) {
 }
 
 const db = globalForDb.__mockDatabase!;
+sanitizeAndDeduplicateDb(db);
 
 function matchesWhere(item: any, where: any, dbRef: MockDatabase): boolean {
   if (!where || Object.keys(where).length === 0) return true;
@@ -517,7 +546,7 @@ export const prisma = {
     create: async (args: { data: any }) => {
       const now = new Date();
       const newUser: MockUser = {
-        id: args.data.id || `usr_${Date.now()}`,
+        id: args.data.id || generateUniqueId('usr'),
         name: args.data.name,
         email: args.data.email,
         passwordHash: args.data.passwordHash,
@@ -537,6 +566,7 @@ export const prisma = {
     },
 
     findMany: async (args?: { where?: any; orderBy?: any; include?: any }) => {
+      sanitizeAndDeduplicateDb(db);
       let list = db.categories.filter((c) => matchesWhere(c, args?.where, db));
       if (args?.orderBy) {
         list = sortItems(list, args.orderBy);
@@ -559,7 +589,7 @@ export const prisma = {
     create: async (args: { data: any }) => {
       const now = new Date();
       const newCat: MockCategory = {
-        id: args.data.id || `cat_${Date.now()}`,
+        id: args.data.id || generateUniqueId('cat'),
         name: args.data.name,
         slug: args.data.slug,
         description: args.data.description ?? null,
@@ -600,7 +630,7 @@ export const prisma = {
       }
       const now = new Date();
       const newCat: MockCategory = {
-        id: args.create.id || `cat_${Date.now()}`,
+        id: args.create.id || generateUniqueId('cat'),
         ...args.create,
         createdAt: now,
         updatedAt: now,
@@ -660,7 +690,7 @@ export const prisma = {
     create: async (args: { data: any; include?: any }) => {
       const now = new Date();
       const newProv: MockProvider = {
-        id: args.data.id || `prov_${Date.now()}`,
+        id: args.data.id || generateUniqueId('prov'),
         name: args.data.name,
         slug: args.data.slug,
         cnpj: args.data.cnpj ?? null,

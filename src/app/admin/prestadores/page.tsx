@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { formatPhone, formatCNPJ } from '@/lib/utils';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { authFetch } from '@/lib/apiClient';
 
 export default function AdminProvidersPage() {
   const [providers, setProviders] = useState<any[]>([]);
@@ -59,7 +60,7 @@ export default function AdminProvidersPage() {
   // Alternar Ativo/Inativo
   const handleToggleActive = async (provider: any) => {
     try {
-      const res = await fetch(`/api/providers/${provider.id}`, {
+      const res = await authFetch(`/api/providers/${provider.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -81,7 +82,7 @@ export default function AdminProvidersPage() {
   // Alternar Destaque
   const handleToggleFeatured = async (provider: any) => {
     try {
-      const res = await fetch(`/api/providers/${provider.id}`, {
+      const res = await authFetch(`/api/providers/${provider.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -105,7 +106,7 @@ export default function AdminProvidersPage() {
     if (!deletingId) return;
     try {
       setActionLoading(true);
-      const res = await fetch(`/api/providers/${deletingId}`, {
+      const res = await authFetch(`/api/providers/${deletingId}`, {
         method: 'DELETE',
       });
 
@@ -189,8 +190,8 @@ export default function AdminProvidersPage() {
             className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-slate-900 cursor-pointer"
           >
             <option value="">Todas as Categorias</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
+            {categories.map((c, idx) => (
+              <option key={`${c.id}-${idx}`} value={c.id}>
                 {c.name}
               </option>
             ))}

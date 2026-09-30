@@ -64,8 +64,8 @@ export function SearchBar({
             className="w-full pl-10 pr-8 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all font-medium appearance-none cursor-pointer"
           >
             <option value="">Todas as categorias</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.slug}>
+            {categories.map((cat, idx) => (
+              <option key={`${cat.id}-${idx}`} value={cat.slug}>
                 {cat.name}
               </option>
             ))}

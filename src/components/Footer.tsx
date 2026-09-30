@@ -16,11 +16,11 @@ export function Footer() {
                 <BookOpen className="w-5 h-5 text-slate-950 font-bold" />
               </div>
               <span className="text-xl font-black tracking-tight text-white">
-                Páginas<span className="text-amber-400">Amarelas</span>
+                Guia Síndico <span className="text-amber-400">Né!</span>
               </span>
             </div>
             <p className="text-sm text-slate-400 max-w-md leading-relaxed">
-              O catálogo digital completo para você encontrar prestadores de serviços de confiança na sua região. Eletricistas, encanadores, pintores, marcenarias e muito mais.
+              O catálogo digital completo para síndicos e gestores encontrarem prestadores de serviços de confiança. Eletricistas, encanadores, pintores, marcenarias e muito mais.
             </p>
             <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/80 p-3 rounded-lg max-w-md border border-slate-700/50">
               <Shield className="w-4 h-4 text-amber-400 shrink-0" />
@@ -64,19 +64,47 @@ export function Footer() {
             </h3>
             <ul className="space-y-2.5 text-sm text-slate-400">
               <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-amber-400" />
-                <span>Atendimento ao Cliente</span>
+                <Phone className="w-4 h-4 text-amber-400 shrink-0" />
+                <a
+                  href="https://wa.me/5521978788211"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-amber-400 transition-colors"
+                >
+                  (21) 97878-8211
+                </a>
               </li>
               <li className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-amber-400" />
-                <span>contato@catalogo.com.br</span>
+                <Mail className="w-4 h-4 text-amber-400 shrink-0" />
+                <a
+                  href="mailto:contato@sindicone.com.br"
+                  className="hover:text-amber-400 transition-colors"
+                >
+                  contato@sindicone.com.br
+                </a>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-8 mt-8 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {currentYear} Páginas Amarelas - Catálogo de Prestadores de Serviços. Todos os direitos reservados.</p>
+        {/* Frase Institucional Grupo Ícone-Rio */}
+        <div className="py-6 border-t border-slate-800/80 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs sm:text-sm text-slate-400 max-w-3xl leading-relaxed">
+            Mais do que reunir empresas, o{' '}
+            <a
+              href="https://www.icone-rio.com.br/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-400 hover:text-amber-300 font-bold underline underline-offset-2 transition-colors"
+            >
+              Grupo Ícone‑Rio
+            </a>{' '}
+            desenvolve negócios com foco, autonomia e visão de longo prazo.
+          </p>
+        </div>
+
+        <div className="pt-6 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p>© {currentYear} Guia Síndico Né! - Catálogo de Prestadores de Serviços. Todos os direitos reservados.</p>
           <p className="flex items-center gap-1">
             Desenvolvido com <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 inline" /> para conectar profissionais e clientes
           </p>

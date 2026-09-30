@@ -30,8 +30,19 @@ export default function AdminLoginPage() {
         throw new Error(data.error || 'Erro ao realizar login');
       }
 
-      router.push('/admin');
-      router.refresh();
+      if (data.token) {
+        try {
+          localStorage.setItem('admin_token', data.token);
+          if (data.user) {
+            localStorage.setItem('admin_user', JSON.stringify(data.user));
+          }
+          document.cookie = `admin_session_token=${data.token}; path=/; max-age=604800; SameSite=None; Secure`;
+        } catch (e) {
+          console.warn('Storage error:', e);
+        }
+      }
+
+      window.location.href = '/admin';
     } catch (err: any) {
       setError(err.message || 'Erro de conexão com o servidor.');
     } finally {
@@ -57,7 +68,10 @@ export default function AdminLoginPage() {
         <h2 className="text-center text-2xl sm:text-3xl font-black text-white tracking-tight">
           Painel de Administração
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-400">
+        <p className="mt-2 text-center text-sm text-amber-400/90 font-medium">
+          Guia Síndico Né!
+        </p>
+        <p className="mt-1 text-center text-xs text-slate-400">
           Entre com seu e-mail e senha para gerenciar o catálogo
         </p>
       </div>
