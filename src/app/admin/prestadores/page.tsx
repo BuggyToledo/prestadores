@@ -30,7 +30,9 @@ export default function AdminProvidersPage() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingName, setDeletingName] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Carregar dados
   const loadData = async () => {
@@ -110,12 +112,20 @@ export default function AdminProvidersPage() {
         method: 'DELETE',
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (res.ok) {
         setProviders((prev) => prev.filter((p) => p.id !== deletingId));
+        setSuccessMessage('Prestador excluído com sucesso do catálogo!');
+        setTimeout(() => setSuccessMessage(''), 3500);
         setDeletingId(null);
+        setDeletingName(null);
+      } else {
+        alert(data.error || 'Erro ao excluir prestador.');
       }
     } catch (e) {
       console.error(e);
+      alert('Falha na comunicação com o servidor ao excluir.');
     } finally {
       setActionLoading(false);
     }
@@ -167,6 +177,14 @@ export default function AdminProvidersPage() {
           <span>Cadastrar Novo Prestador</span>
         </Link>
       </div>
+
+      {/* Alerta de Sucesso */}
+      {successMessage && (
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2 animate-in fade-in">
+          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{successMessage}</span>
+        </div>
+      )}
 
       {/* Barra de Filtros */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
@@ -355,9 +373,12 @@ export default function AdminProvidersPage() {
                           <Edit className="w-4 h-4" />
                         </Link>
                         <button
-                          onClick={() => setDeletingId(provider.id)}
+                          onClick={() => {
+                            setDeletingId(provider.id);
+                            setDeletingName(provider.name);
+                          }}
                           title="Excluir prestador"
-                          className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors"
+                          className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -380,9 +401,11 @@ export default function AdminProvidersPage() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-lg font-bold text-slate-900">Excluir Prestador?</h3>
+              <h3 className="text-lg font-bold text-slate-900">
+                Excluir {deletingName ? `"${deletingName}"` : 'Prestador'}?
+              </h3>
               <p className="text-sm text-slate-600">
-                Tem certeza que deseja excluir este prestador de serviços? Esta ação removerá o perfil do catálogo público permanentemente.
+                Tem certeza que deseja excluir permanentemente este prestador? Ele será removido imediatamente de todas as buscas do catálogo público.
               </p>
             </div>
 
@@ -390,8 +413,11 @@ export default function AdminProvidersPage() {
               <button
                 type="button"
                 disabled={actionLoading}
-                onClick={() => setDeletingId(null)}
-                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors"
+                onClick={() => {
+                  setDeletingId(null);
+                  setDeletingName(null);
+                }}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -399,7 +425,7 @@ export default function AdminProvidersPage() {
                 type="button"
                 disabled={actionLoading}
                 onClick={handleDelete}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold shadow-md transition-colors flex items-center gap-2"
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold shadow-md transition-colors flex items-center gap-2 cursor-pointer"
               >
                 {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>Sim, Excluir</span>

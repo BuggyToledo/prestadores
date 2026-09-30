@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Shield,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export default function AdminLayout({
@@ -113,6 +114,12 @@ export default function AdminLayout({
       href: '/admin/categorias',
       icon: FolderTree,
       active: pathname.startsWith('/admin/categorias'),
+    },
+    {
+      name: 'Banners de Propaganda',
+      href: '/admin/banners',
+      icon: ImageIcon,
+      active: pathname.startsWith('/admin/banners'),
     },
   ];
 

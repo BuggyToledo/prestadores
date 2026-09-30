@@ -12,6 +12,13 @@ enum Role {
   EDITOR
 }
 
+enum BannerPosition {
+  HERO_TOP
+  MIDDLE
+  SIDEBAR
+  FOOTER
+}
+
 model User {
   id           String    @id @default(uuid())
   name         String
@@ -29,7 +36,7 @@ model Category {
   name        String     @unique
   slug        String     @unique
   description String?    @db.Text
-  icon        String?    @default("Briefcase") // Nome do ícone Lucide ou emoji
+  icon        String?    @default("Briefcase")
   order       Int        @default(0)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -40,32 +47,32 @@ model Category {
 
 model Provider {
   id           String   @id @default(uuid())
-  name         String   // Nome da Empresa ou Profissional
+  name         String
   slug         String   @unique
-  cnpj         String?  // CNPJ ou CPF formatado
-  phone        String?  // Telefone Fixo
-  whatsapp     String?  // WhatsApp (com DDD)
-  email        String?  // E-mail de contato
-  website      String?  // URL do site
-  instagram    String?  // @ ou URL do Instagram
+  cnpj         String?
+  phone        String?
+  whatsapp     String?
+  email        String?
+  website      String?
+  instagram    String?
   
   // Endereço
-  address      String?  // Rua, número, complemento
-  neighborhood String?  // Bairro
-  city         String   // Cidade (ex: São Paulo)
-  state        String   // UF (ex: SP)
-  zipCode      String?  // CEP
+  address      String?
+  neighborhood String?
+  city         String
+  state        String
+  zipCode      String?
   
   // Detalhes
-  description  String?  @db.Text // Descrição detalhada dos serviços
-  services     String?  @db.Text // Lista de serviços (separados por vírgula ou JSON)
-  logoUrl      String?  @db.Text // URL da foto / logo
-  coverUrl     String?  @db.Text // Foto de capa / fachada
+  description  String?  @db.Text
+  services     String?  @db.Text
+  logoUrl      String?  @db.Text
+  coverUrl     String?  @db.Text
   
   // Status
-  isFeatured   Boolean  @default(false) // Destaque na home
-  isActive     Boolean  @default(true)  // Ativo / Inativo
-  viewsCount   Int      @default(0)     // Contador de cliques/visualizações
+  isFeatured   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  viewsCount   Int      @default(0)
   
   // Relacionamento com Categoria
   categoryId   String
@@ -78,4 +85,22 @@ model Provider {
   @@index([city, state])
   @@index([isActive])
   @@map("providers")
+}
+
+model Banner {
+  id          String         @id @default(uuid())
+  title       String         // Nome do anunciante / campanha
+  imageUrl    String         @db.LongText // URL ou imagem base64
+  linkUrl     String?        @db.Text // Link ao clicar (site, WhatsApp, etc)
+  target      String         @default("_blank") // _blank ou _self
+  position    BannerPosition @default(HERO_TOP)
+  isActive    Boolean        @default(true)
+  order       Int            @default(0)
+  clicksCount Int            @default(0)
+  viewsCount  Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([position, isActive])
+  @@map("banners")
 }

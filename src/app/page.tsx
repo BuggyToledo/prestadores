@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { SearchBar } from '@/components/SearchBar';
 import { ProviderCard } from '@/components/ProviderCard';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { BannerDisplay } from '@/components/BannerDisplay';
 import {
   Sparkles,
   Award,
@@ -34,19 +35,25 @@ export default async function HomePage({ searchParams }: PageProps) {
   const categoria = params.categoria || '';
   const cidade = params.cidade || '';
 
-  // Buscar todas as categorias com contagem de prestadores ativos
-  const categories = await prisma.category.findMany({
-    orderBy: [{ order: 'asc' }, { name: 'asc' }],
-    include: {
-      _count: {
-        select: {
-          providers: {
-            where: { isActive: true },
+  // Buscar categorias, prestadores e banners ativos em paralelo
+  const [categories, banners] = await Promise.all([
+    prisma.category.findMany({
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
+      include: {
+        _count: {
+          select: {
+            providers: {
+              where: { isActive: true },
+            },
           },
         },
       },
-    },
-  });
+    }),
+    prisma.banner.findMany({
+      where: { isActive: true },
+      orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+    }),
+  ]);
 
   // Montar filtro do Prisma para os prestadores
   const whereFilter: any = {
@@ -147,8 +154,15 @@ export default async function HomePage({ searchParams }: PageProps) {
         />
       </div>
 
+      {/* BANNER TOPO PRINCIPAL (HERO_TOP) */}
+      <BannerDisplay
+        banners={banners}
+        position="HERO_TOP"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6"
+      />
+
       {/* 3. CATEGORIAS EM DESTAQUE */}
-      <section id="categorias" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
+      <section id="categorias" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
@@ -227,8 +241,15 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       </section>
 
+      {/* BANNER DO MEIO (MIDDLE) */}
+      <BannerDisplay
+        banners={banners}
+        position="MIDDLE"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+      />
+
       {/* 4. LISTAGEM DE PRESTADORES */}
-      <section id="prestadores" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <section id="prestadores" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-200">
           <div>
             <div className="flex items-center gap-2">
@@ -288,8 +309,15 @@ export default async function HomePage({ searchParams }: PageProps) {
         )}
       </section>
 
+      {/* BANNER RODAPÉ (FOOTER) */}
+      <BannerDisplay
+        banners={banners}
+        position="FOOTER"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+      />
+
       {/* 5. BANNER CADASTRE SEU NEGÓCIO */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-8 sm:p-12 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden border border-slate-700">
           <div className="space-y-4 max-w-xl">
             <div className="inline-flex items-center gap-2 bg-amber-400/20 text-amber-300 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border border-amber-400/30">

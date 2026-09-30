@@ -50,10 +50,26 @@ export interface MockProvider {
   updatedAt: Date;
 }
 
+export interface MockBanner {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string | null;
+  target: string;
+  position: 'HERO_TOP' | 'MIDDLE' | 'SIDEBAR' | 'FOOTER';
+  isActive: boolean;
+  order: number;
+  clicksCount: number;
+  viewsCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 interface MockDatabase {
   users: MockUser[];
   categories: MockCategory[];
   providers: MockProvider[];
+  banners: MockBanner[];
 }
 
 function initializeMockDb(): MockDatabase {
@@ -339,7 +355,38 @@ function initializeMockDb(): MockDatabase {
     },
   ];
 
-  return { users, categories, providers };
+  const banners: MockBanner[] = [
+    {
+      id: 'ban_hero_1',
+      title: 'Anuncie Aqui seu Negócio - Espaço de Destaque',
+      imageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&auto=format&fit=crop&q=80',
+      linkUrl: 'https://wa.me/5511999998888?text=Ola,%20gostaria%20de%20anunciar%20no%20Catalogo!',
+      target: '_blank',
+      position: 'HERO_TOP',
+      isActive: true,
+      order: 1,
+      clicksCount: 28,
+      viewsCount: 340,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+    },
+    {
+      id: 'ban_middle_1',
+      title: 'Desconto Especial em Manutenção Predial e Reformas',
+      imageUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200&auto=format&fit=crop&q=80',
+      linkUrl: 'https://wa.me/5511999998888?text=Quero%20aproveitar%20o%20desconto%20especial',
+      target: '_blank',
+      position: 'MIDDLE',
+      isActive: true,
+      order: 1,
+      clicksCount: 15,
+      viewsCount: 210,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+    },
+  ];
+
+  return { users, categories, providers, banners };
 }
 
 let idSequence = 0;
@@ -850,6 +897,114 @@ const mockPrisma = {
       };
       db.providers.push(newProv);
       return { ...newProv };
+    },
+  },
+
+  banner: {
+    count: async (args?: { where?: any }) => {
+      if (!args?.where) return db.banners.length;
+      return db.banners.filter((b) => matchesWhere(b, args.where, db)).length;
+    },
+
+    findMany: async (args?: {
+      where?: any;
+      orderBy?: any;
+      skip?: number;
+      take?: number;
+    }) => {
+      let list = db.banners.filter((b) => matchesWhere(b, args?.where, db));
+      if (args?.orderBy) {
+        list = sortItems(list, args.orderBy);
+      }
+      if (args?.skip !== undefined && args.skip > 0) {
+        list = list.slice(args.skip);
+      }
+      if (args?.take !== undefined) {
+        list = list.slice(0, args.take);
+      }
+      return list;
+    },
+
+    findFirst: async (args?: { where?: any }) => {
+      const b = db.banners.find((ban) => matchesWhere(ban, args?.where, db));
+      return b || null;
+    },
+
+    findUnique: async (args: { where: any }) => {
+      const b = db.banners.find((ban) => matchesWhere(ban, args.where, db));
+      return b || null;
+    },
+
+    create: async (args: { data: any }) => {
+      const now = new Date();
+      const newBanner: MockBanner = {
+        id: args.data.id || generateUniqueId('ban'),
+        title: args.data.title,
+        imageUrl: args.data.imageUrl,
+        linkUrl: args.data.linkUrl ?? null,
+        target: args.data.target || '_blank',
+        position: args.data.position || 'HERO_TOP',
+        isActive: args.data.isActive !== undefined ? Boolean(args.data.isActive) : true,
+        order: Number(args.data.order) || 0,
+        clicksCount: 0,
+        viewsCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.banners.unshift(newBanner);
+      return { ...newBanner };
+    },
+
+    update: async (args: { where: any; data: any }) => {
+      const idx = db.banners.findIndex((b) => matchesWhere(b, args.where, db));
+      if (idx === -1) throw new Error('Banner not found');
+      const cur = db.banners[idx];
+
+      const patch: any = { ...args.data };
+      if (patch.clicksCount && typeof patch.clicksCount === 'object' && 'increment' in patch.clicksCount) {
+        patch.clicksCount = (cur.clicksCount || 0) + Number(patch.clicksCount.increment || 1);
+      }
+      if (patch.viewsCount && typeof patch.viewsCount === 'object' && 'increment' in patch.viewsCount) {
+        patch.viewsCount = (cur.viewsCount || 0) + Number(patch.viewsCount.increment || 1);
+      }
+
+      const updated: MockBanner = {
+        ...cur,
+        ...patch,
+        updatedAt: new Date(),
+      };
+      db.banners[idx] = updated;
+      return { ...updated };
+    },
+
+    updateMany: async (args: { where: any; data: any }) => {
+      let count = 0;
+      for (let i = 0; i < db.banners.length; i++) {
+        if (matchesWhere(db.banners[i], args.where, db)) {
+          const cur = db.banners[i];
+          const patch: any = { ...args.data };
+          if (patch.clicksCount && typeof patch.clicksCount === 'object' && 'increment' in patch.clicksCount) {
+            patch.clicksCount = (cur.clicksCount || 0) + Number(patch.clicksCount.increment || 1);
+          }
+          if (patch.viewsCount && typeof patch.viewsCount === 'object' && 'increment' in patch.viewsCount) {
+            patch.viewsCount = (cur.viewsCount || 0) + Number(patch.viewsCount.increment || 1);
+          }
+          db.banners[i] = {
+            ...cur,
+            ...patch,
+            updatedAt: new Date(),
+          };
+          count++;
+        }
+      }
+      return { count };
+    },
+
+    delete: async (args: { where: any }) => {
+      const idx = db.banners.findIndex((b) => matchesWhere(b, args.where, db));
+      if (idx === -1) throw new Error('Banner not found');
+      const deleted = db.banners.splice(idx, 1)[0];
+      return { ...deleted };
     },
   },
 };
