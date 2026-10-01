@@ -693,67 +693,166 @@ function attachCategoryProviders(category: MockCategory, include?: any) {
   return result;
 }
 
-const shouldUseRealPrisma = Boolean(process.env.DATABASE_URL) && process.env.USE_REAL_PRISMA !== 'false';
+/**
+ * MySQL real só é usado quando USE_REAL_PRISMA=true E DATABASE_URL está definida.
+ * Antes, qualquer DATABASE_URL ativava o Prisma e o fallback silencioso mascarava
+ * erros de INSERT — a API retornava sucesso sem gravar no MySQL.
+ */
+const shouldUseRealPrisma = (): boolean =>
+  Boolean(process.env.DATABASE_URL) && process.env.USE_REAL_PRISMA === 'true';
+
+/** Operações de escrita: nunca caem no mock quando o MySQL está ativo. */
+const WRITE_METHODS = new Set([
+  'create',
+  'createMany',
+  'update',
+  'updateMany',
+  'upsert',
+  'delete',
+  'deleteMany',
+]);
 
 let globalPrismaClient: PrismaClient | null = null;
-if (shouldUseRealPrisma) {
+
+function createPrismaClientInstance(): PrismaClient | null {
+  if (!shouldUseRealPrisma()) return null;
   try {
-    const globalForPrisma = globalThis as unknown as { prismaClient?: PrismaClient };
-    if (!globalForPrisma.prismaClient) {
-      globalForPrisma.prismaClient = new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-      });
-    }
-    globalPrismaClient = globalForPrisma.prismaClient;
+    return new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    });
   } catch (e) {
-    console.warn('[Prisma] Error creating PrismaClient instance, falling back to mock:', e);
+    console.warn('[Prisma] Error creating PrismaClient instance:', e);
+    return null;
   }
 }
 
-function createSafePrismaClient(realClient: PrismaClient, fallbackMock: any): PrismaClient {
+{
+  const globalForPrisma = globalThis as unknown as { prismaClient?: PrismaClient | null };
+  if (shouldUseRealPrisma()) {
+    if (!globalForPrisma.prismaClient) {
+      globalForPrisma.prismaClient = createPrismaClientInstance();
+    }
+    globalPrismaClient = globalForPrisma.prismaClient || null;
+  }
+}
+
+/**
+ * Recria o PrismaClient após alterar DATABASE_URL / USE_REAL_PRISMA em runtime
+ * (ex.: painel Admin > Banco). Sem isso, a config nova não entra em vigor.
+ */
+export async function reinitializePrismaClient(): Promise<{ active: boolean }> {
+  const globalForPrisma = globalThis as unknown as { prismaClient?: PrismaClient | null };
+
+  if (globalForPrisma.prismaClient) {
+    try {
+      await globalForPrisma.prismaClient.$disconnect();
+    } catch {}
+  }
+
+  globalForPrisma.prismaClient = null;
+  globalPrismaClient = null;
+
+  if (shouldUseRealPrisma()) {
+    const client = createPrismaClientInstance();
+    globalForPrisma.prismaClient = client;
+    globalPrismaClient = client;
+  }
+
+  return { active: Boolean(globalPrismaClient) };
+}
+
+export function isRealPrismaEnabled(): boolean {
+  return shouldUseRealPrisma() && Boolean(globalPrismaClient);
+}
+
+function getActiveRealClient(): PrismaClient | null {
+  return globalPrismaClient;
+}
+
+/**
+ * Proxy que encaminha para o PrismaClient MySQL atual (se ativo).
+ * Lê sempre o client vivo — assim reinitializePrismaClient() passa a valer
+ * sem precisar reiniciar o processo Node.
+ */
+function createAdaptivePrismaClient(fallbackMock: any): PrismaClient {
   return new Proxy(fallbackMock, {
     get(target, prop) {
+      const realClient = getActiveRealClient();
+
       if (prop === '$disconnect') {
         return async () => {
+          if (!realClient) return;
           try {
             await realClient.$disconnect();
           } catch {}
         };
       }
+
+      // Sem MySQL ativo → mock puro
+      if (!realClient) {
+        return target[prop];
+      }
+
+      if (prop === '$queryRaw' || prop === '$executeRaw' || prop === '$transaction') {
+        const realFn = (realClient as any)[prop];
+        if (typeof realFn === 'function') {
+          return (...args: any[]) => realFn.apply(realClient, args);
+        }
+      }
+
       const realTarget = (realClient as any)[prop];
       const mockTarget = target[prop];
 
       if (!realTarget) return mockTarget;
       if (typeof realTarget === 'function') {
         return async (...args: any[]) => {
-          try {
-            return await realTarget.apply(realClient, args);
-          } catch (err: any) {
-            console.warn(`[Prisma Safe Mode] Fallback on ${String(prop)}:`, err?.message || err);
-            return typeof mockTarget === 'function' ? mockTarget.apply(target, args) : mockTarget;
-          }
+          return await realTarget.apply(realClient, args);
         };
       }
 
-      // If it's a model like user, category, provider
+      // Model delegates (user, category, provider, ...)
       return new Proxy(mockTarget || {}, {
         get(mTarget, mProp) {
-          const realMethod = realTarget[mProp];
+          const methodName = String(mProp);
+          // Resolve o client no momento da chamada (após possível reinit)
+          const liveClient = getActiveRealClient();
+          if (!liveClient) {
+            const mockMethod = mTarget[mProp];
+            return typeof mockMethod === 'function'
+              ? (...args: any[]) => mockMethod.apply(mTarget, args)
+              : mockMethod;
+          }
+
+          const liveModel = (liveClient as any)[prop];
+          const realMethod = liveModel?.[mProp];
           const mockMethod = mTarget[mProp];
           if (typeof realMethod !== 'function') return mockMethod;
 
           return async (...args: any[]) => {
             try {
-              return await realMethod.apply(realTarget, args);
+              return await realMethod.apply(liveModel, args);
             } catch (err: any) {
-              console.warn(
-                `[Prisma Safe Mode] Connection failed on ${String(prop)}.${String(mProp)}, using in-memory store:`,
-                err?.message || err
-              );
-              if (typeof mockMethod === 'function') {
+              // Escritas NÃO podem fingir sucesso no mock — isso fazia o admin
+              // achar que o prestador foi salvo no MySQL quando não foi.
+              if (WRITE_METHODS.has(methodName)) {
+                console.error(
+                  `[Prisma] Falha ao gravar em ${String(prop)}.${methodName} (MySQL):`,
+                  err?.message || err
+                );
+                throw err;
+              }
+
+              // Leituras: só usam mock se for erro de conexão (não schema/FK).
+              const { isConnectionError } = await import('./dbError');
+              if (isConnectionError(err) && typeof mockMethod === 'function') {
+                console.warn(
+                  `[Prisma Safe Mode] Conexão falhou em ${String(prop)}.${methodName}, usando store local:`,
+                  err?.message || err
+                );
                 return await mockMethod.apply(mTarget, args);
               }
-              return null;
+
+              throw err;
             }
           };
         },
@@ -1227,7 +1326,5 @@ const mockPrisma = {
   },
 };
 
-export const prisma: PrismaClient = (
-  globalPrismaClient ? createSafePrismaClient(globalPrismaClient, mockPrisma) : mockPrisma
-) as unknown as PrismaClient;
+export const prisma: PrismaClient = createAdaptivePrismaClient(mockPrisma) as unknown as PrismaClient;
 

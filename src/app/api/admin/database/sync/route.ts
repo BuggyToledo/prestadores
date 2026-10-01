@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { getMockDatabase } from '@/lib/prisma';
 import { parseDatabaseUrl, syncDatabaseToMySql } from '@/lib/mysqlHelper';
+import { formatMySqlConnectionError } from '@/lib/mysqlConnectionError';
 import mysql from 'mysql2/promise';
 
 export async function POST(request: Request) {
@@ -14,7 +15,10 @@ export async function POST(request: Request) {
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
       return NextResponse.json(
-        { error: 'DATABASE_URL não configurada no arquivo .env.' },
+        {
+          error:
+            'DATABASE_URL não configurada. Na Vercel, defina DATABASE_URL e USE_REAL_PRISMA=true em Environment Variables e faça Redeploy.',
+        },
         { status: 400 }
       );
     }
@@ -33,10 +37,15 @@ export async function POST(request: Request) {
         connectTimeout: 8000,
       });
     } catch (err: any) {
+      const formatted = formatMySqlConnectionError(err);
       return NextResponse.json(
         {
-          error: `Não foi possível conectar ao MySQL para sincronizar: ${err.message}`,
-          code: err.code,
+          error: formatted.error,
+          code: formatted.code,
+          clientIp: formatted.clientIp,
+          hostDenied: formatted.hostDenied,
+          providerHint: formatted.providerHint,
+          allowableHostsToAdd: formatted.allowableHostsToAdd,
         },
         { status: 500 }
       );

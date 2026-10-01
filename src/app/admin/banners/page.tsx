@@ -291,8 +291,8 @@ export default function AdminBannersPage() {
               className="bg-white rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all overflow-hidden flex flex-col justify-between"
             >
               <div>
-                {/* Imagem de Prévia */}
-                <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
+                {/* Imagem de Prévia — proporção wide do site */}
+                <div className="relative aspect-[21/5] bg-slate-900 overflow-hidden">
                   <img
                     src={banner.imageUrl}
                     alt={banner.title}
@@ -431,9 +431,9 @@ export default function AdminBannersPage() {
                   Imagem do Banner <span className="text-red-500">*</span>
                 </label>
 
-                {/* Prévia da Imagem */}
+                {/* Prévia da Imagem — proporção igual à do site (largura total) */}
                 {formData.imageUrl && (
-                  <div className="relative mb-3 rounded-2xl overflow-hidden aspect-[21/9] bg-slate-900 border border-slate-200">
+                  <div className="relative mb-3 rounded-2xl overflow-hidden aspect-[21/5] bg-slate-900 border border-slate-200">
                     <img
                       src={formData.imageUrl}
                       alt="Prévia do banner"
@@ -448,6 +448,11 @@ export default function AdminBannersPage() {
                     </button>
                   </div>
                 )}
+
+                <p className="text-[11px] text-slate-500 mb-2 leading-relaxed">
+                  Recomendado: imagem horizontal <strong>1200×280 px</strong> (ou similar ~21:5).
+                  No site o banner ocupa toda a largura do conteúdo.
+                </p>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
