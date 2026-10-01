@@ -15,6 +15,7 @@ import {
   X,
   Shield,
   Image as ImageIcon,
+  Database,
 } from 'lucide-react';
 
 export default function AdminLayout({
@@ -120,6 +121,12 @@ export default function AdminLayout({
       href: '/admin/banners',
       icon: ImageIcon,
       active: pathname.startsWith('/admin/banners'),
+    },
+    {
+      name: 'Banco de Dados & MySQL',
+      href: '/admin/banco',
+      icon: Database,
+      active: pathname.startsWith('/admin/banco'),
     },
   ];
 

@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
 
 // Types for in-memory models
 export interface MockUser {
@@ -77,7 +79,7 @@ export interface MockBanner {
   updatedAt: Date;
 }
 
-interface MockDatabase {
+export interface MockDatabase {
   users: MockUser[];
   categories: MockCategory[];
   subcategories: MockSubcategory[];
@@ -443,20 +445,84 @@ export function sanitizeAndDeduplicateDb(mockDb: MockDatabase) {
   }
 }
 
+const DB_FILE_PATH = path.join(process.cwd(), 'data', 'database.json');
+
+export function saveDbToDisk(mockDb: MockDatabase) {
+  try {
+    const dir = path.dirname(DB_FILE_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(DB_FILE_PATH, JSON.stringify(mockDb, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[Prisma Persistence] Error saving database to disk:', err);
+  }
+}
+
+function loadDbFromDisk(): MockDatabase | null {
+  try {
+    if (fs.existsSync(DB_FILE_PATH)) {
+      const content = fs.readFileSync(DB_FILE_PATH, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (parsed && Array.isArray(parsed.providers) && Array.isArray(parsed.categories)) {
+        parsed.users?.forEach((u: any) => {
+          u.createdAt = new Date(u.createdAt);
+          u.updatedAt = new Date(u.updatedAt);
+        });
+        parsed.categories?.forEach((c: any) => {
+          c.createdAt = new Date(c.createdAt);
+          c.updatedAt = new Date(c.updatedAt);
+        });
+        parsed.subcategories?.forEach((s: any) => {
+          s.createdAt = new Date(s.createdAt);
+          s.updatedAt = new Date(s.updatedAt);
+        });
+        parsed.providers?.forEach((p: any) => {
+          p.createdAt = new Date(p.createdAt);
+          p.updatedAt = new Date(p.updatedAt);
+        });
+        parsed.banners?.forEach((b: any) => {
+          b.createdAt = new Date(b.createdAt);
+          b.updatedAt = new Date(b.updatedAt);
+        });
+        if (!parsed.subcategories) parsed.subcategories = [];
+        if (!parsed.banners) parsed.banners = [];
+        return parsed as MockDatabase;
+      }
+    }
+  } catch (err) {
+    console.error('[Prisma Persistence] Error reading database from disk:', err);
+  }
+  return null;
+}
+
 // Global persistence across Next.js dev reloads
 const globalForDb = globalThis as unknown as {
   __mockDatabase?: MockDatabase;
 };
 
 if (!globalForDb.__mockDatabase) {
-  globalForDb.__mockDatabase = initializeMockDb();
+  const diskData = loadDbFromDisk();
+  if (diskData) {
+    globalForDb.__mockDatabase = diskData;
+  } else {
+    globalForDb.__mockDatabase = initializeMockDb();
+    saveDbToDisk(globalForDb.__mockDatabase);
+  }
 }
 
 const db = globalForDb.__mockDatabase!;
 if (!db.subcategories) {
   db.subcategories = [];
 }
+if (!db.banners) {
+  db.banners = [];
+}
 sanitizeAndDeduplicateDb(db);
+
+export function getMockDatabase(): MockDatabase {
+  return db;
+}
 
 function matchesWhere(item: any, where: any, dbRef: MockDatabase): boolean {
   if (!where || Object.keys(where).length === 0) return true;
@@ -730,6 +796,7 @@ const mockPrisma = {
         updatedAt: now,
       };
       db.users.push(newUser);
+      saveDbToDisk(db);
       return { ...newUser };
     },
   },
@@ -774,6 +841,7 @@ const mockPrisma = {
         updatedAt: now,
       };
       db.categories.push(newCat);
+      saveDbToDisk(db);
       return { ...newCat };
     },
 
@@ -787,6 +855,7 @@ const mockPrisma = {
         updatedAt: new Date(),
       };
       db.categories[idx] = updated;
+      saveDbToDisk(db);
       return { ...updated };
     },
 
@@ -794,6 +863,7 @@ const mockPrisma = {
       const idx = db.categories.findIndex((c) => matchesWhere(c, args.where, db));
       if (idx === -1) throw new Error('Category not found');
       const deleted = db.categories.splice(idx, 1)[0];
+      saveDbToDisk(db);
       return { ...deleted };
     },
 
@@ -801,6 +871,7 @@ const mockPrisma = {
       const idx = db.categories.findIndex((c) => matchesWhere(c, args.where, db));
       if (idx >= 0) {
         db.categories[idx] = { ...db.categories[idx], ...args.update, updatedAt: new Date() };
+        saveDbToDisk(db);
         return { ...db.categories[idx] };
       }
       const now = new Date();
@@ -811,6 +882,7 @@ const mockPrisma = {
         updatedAt: now,
       };
       db.categories.push(newCat);
+      saveDbToDisk(db);
       return { ...newCat };
     },
   },
@@ -887,10 +959,12 @@ const mockPrisma = {
         isActive: args.data.isActive !== undefined ? Boolean(args.data.isActive) : true,
         viewsCount: 0,
         categoryId: args.data.categoryId,
+        subcategoryId: args.data.subcategoryId ?? null,
         createdAt: now,
         updatedAt: now,
       };
       db.providers.unshift(newProv);
+      saveDbToDisk(db);
       return attachCategory(newProv, args.include);
     },
 
@@ -910,6 +984,7 @@ const mockPrisma = {
         updatedAt: new Date(),
       };
       db.providers[idx] = updated;
+      saveDbToDisk(db);
       return attachCategory(updated, args.include);
     },
 
@@ -930,6 +1005,7 @@ const mockPrisma = {
           count++;
         }
       }
+      if (count > 0) saveDbToDisk(db);
       return { count };
     },
 
@@ -937,6 +1013,7 @@ const mockPrisma = {
       const idx = db.providers.findIndex((p) => matchesWhere(p, args.where, db));
       if (idx === -1) throw new Error('Provider not found');
       const deleted = db.providers.splice(idx, 1)[0];
+      saveDbToDisk(db);
       return { ...deleted };
     },
 
@@ -944,6 +1021,7 @@ const mockPrisma = {
       const idx = db.providers.findIndex((p) => matchesWhere(p, args.where, db));
       if (idx >= 0) {
         db.providers[idx] = { ...db.providers[idx], ...args.update, updatedAt: new Date() };
+        saveDbToDisk(db);
         return { ...db.providers[idx] };
       }
       const now = new Date();
@@ -955,6 +1033,7 @@ const mockPrisma = {
         updatedAt: now,
       };
       db.providers.push(newProv);
+      saveDbToDisk(db);
       return { ...newProv };
     },
   },
@@ -1011,6 +1090,7 @@ const mockPrisma = {
         updatedAt: now,
       };
       db.banners.unshift(newBanner);
+      saveDbToDisk(db);
       return { ...newBanner };
     },
 
@@ -1033,6 +1113,7 @@ const mockPrisma = {
         updatedAt: new Date(),
       };
       db.banners[idx] = updated;
+      saveDbToDisk(db);
       return { ...updated };
     },
 
@@ -1056,6 +1137,7 @@ const mockPrisma = {
           count++;
         }
       }
+      if (count > 0) saveDbToDisk(db);
       return { count };
     },
 
@@ -1063,6 +1145,7 @@ const mockPrisma = {
       const idx = db.banners.findIndex((b) => matchesWhere(b, args.where, db));
       if (idx === -1) throw new Error('Banner not found');
       const deleted = db.banners.splice(idx, 1)[0];
+      saveDbToDisk(db);
       return { ...deleted };
     },
   },
@@ -1116,6 +1199,7 @@ const mockPrisma = {
         updatedAt: now,
       };
       db.subcategories.push(newSub);
+      saveDbToDisk(db);
       return { ...newSub };
     },
 
@@ -1129,6 +1213,7 @@ const mockPrisma = {
         updatedAt: new Date(),
       };
       db.subcategories[idx] = updated;
+      saveDbToDisk(db);
       return { ...updated };
     },
 
@@ -1136,6 +1221,7 @@ const mockPrisma = {
       const idx = db.subcategories.findIndex((s) => matchesWhere(s, args.where, db));
       if (idx === -1) throw new Error('Subcategory not found');
       const deleted = db.subcategories.splice(idx, 1)[0];
+      saveDbToDisk(db);
       return { ...deleted };
     },
   },
