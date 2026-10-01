@@ -3,6 +3,15 @@ import { getSessionUser } from '@/lib/auth';
 import { getMockDatabase, isRealPrismaEnabled } from '@/lib/prisma';
 import { testMySqlConnection, parseDatabaseUrl } from '@/lib/mysqlHelper';
 
+function isServerlessRuntime(): boolean {
+  return Boolean(
+    process.env.VERCEL ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.LAMBDA_TASK_ROOT ||
+      process.cwd() === '/var/task'
+  );
+}
+
 export async function GET(request: Request) {
   try {
     const session = await getSessionUser(request);
@@ -24,6 +33,19 @@ export async function GET(request: Request) {
 
     const useRealFlag = process.env.USE_REAL_PRISMA === 'true';
     const realPrismaActive = isRealPrismaEnabled();
+    const serverless = isServerlessRuntime();
+
+    let warning: string | undefined;
+    if (serverless && !useRealFlag) {
+      warning =
+        'Você está na Vercel (filesystem somente leitura). Não dá para salvar .env por este painel. Em Settings → Environment Variables, defina DATABASE_URL e USE_REAL_PRISMA=true e faça Redeploy.';
+    } else if (useRealFlag && !testResult.success) {
+      warning =
+        'USE_REAL_PRISMA=true, mas a conexão MySQL falhou. Cadastros e importações vão retornar erro até o MySQL ficar acessível.';
+    } else if (!useRealFlag && testResult.success) {
+      warning =
+        'MySQL responde, porém USE_REAL_PRISMA não está true. Os dados estão no armazenamento local e NÃO são gravados no MySQL.';
+    }
 
     return NextResponse.json({
       configured: Boolean(dbUrl),
@@ -36,12 +58,9 @@ export async function GET(request: Request) {
       database: parsedConfig.database,
       isRealPrismaActive: realPrismaActive,
       useRealPrismaEnv: useRealFlag,
-      warning:
-        useRealFlag && !testResult.success
-          ? 'USE_REAL_PRISMA=true, mas a conexão MySQL falhou. Cadastros e importações vão retornar erro até o MySQL ficar acessível.'
-          : !useRealFlag && testResult.success
-            ? 'MySQL responde, porém USE_REAL_PRISMA não está true. Os dados estão no armazenamento local e NÃO são gravados no MySQL.'
-            : undefined,
+      serverless,
+      envWritable: !serverless,
+      warning,
       connection: testResult,
       localStats: {
         providersCount: localDb.providers?.length || 0,

@@ -39,6 +39,7 @@ export default function AdminDatabasePage() {
   const [statusData, setStatusData] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [envHint, setEnvHint] = useState<{ DATABASE_URL?: string; USE_REAL_PRISMA?: string } | null>(null);
 
   // Formulário de conexão
   const [formData, setFormData] = useState({
@@ -115,6 +116,7 @@ export default function AdminDatabasePage() {
       setSaving(true);
       setErrorMsg('');
       setSuccessMsg('');
+      setEnvHint(null);
 
       const res = await authFetch('/api/admin/database/config', {
         method: 'POST',
@@ -127,7 +129,15 @@ export default function AdminDatabasePage() {
         throw new Error(data.error || 'Erro ao salvar configuração.');
       }
 
-      setSuccessMsg(data.message || 'Configurações atualizadas com sucesso!');
+      if (data.envPersisted === false) {
+        setEnvHint(data.requiredEnvVars || null);
+        setSuccessMsg(
+          data.message ||
+            'Na Vercel o .env não pode ser gravado. Configure as variáveis abaixo no painel da hospedagem e faça Redeploy.'
+        );
+      } else {
+        setSuccessMsg(data.message || 'Configurações atualizadas com sucesso!');
+      }
       loadStatus();
     } catch (e: any) {
       setErrorMsg(e.message || 'Erro ao salvar configurações.');
@@ -238,6 +248,37 @@ export default function AdminDatabasePage() {
           <div className="space-y-1">
             <p className="font-bold">Configuração incompleta</p>
             <p className="text-xs leading-relaxed">{statusData.warning}</p>
+          </div>
+        </div>
+      )}
+
+      {(statusData?.serverless || envHint) && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 text-slate-100 text-sm space-y-3">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-amber-400" />
+            <p className="font-bold text-sm">Vercel / serverless — variáveis obrigatórias</p>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            O disco em <code className="text-amber-300">/var/task</code> é somente leitura (erro EROFS).
+            Cadastre estas variáveis em <strong>Vercel → Project → Settings → Environment Variables</strong>,
+            depois clique em <strong>Redeploy</strong>:
+          </p>
+          <div className="bg-black/40 rounded-xl p-3 font-mono text-[11px] space-y-2 overflow-x-auto">
+            <div>
+              <span className="text-slate-400">DATABASE_URL=</span>
+              <span className="text-emerald-300">
+                {envHint?.DATABASE_URL ||
+                  `mysql://${formData.user}:SUA_SENHA@${formData.host}:${formData.port}/${formData.database}`}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-400">USE_REAL_PRISMA=</span>
+              <span className="text-emerald-300">{envHint?.USE_REAL_PRISMA || 'true'}</span>
+            </div>
+            <div>
+              <span className="text-slate-400">JWT_SECRET=</span>
+              <span className="text-emerald-300">uma_chave_longa_e_aleatoria</span>
+            </div>
           </div>
         </div>
       )}
@@ -565,7 +606,9 @@ export default function AdminDatabasePage() {
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md transition-all cursor-pointer disabled:opacity-50"
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Salvar Configurações</span>
+                <span>
+                  {statusData?.serverless ? 'Testar e Aplicar nesta Sessão' : 'Salvar Configurações'}
+                </span>
               </button>
             </div>
           </div>
