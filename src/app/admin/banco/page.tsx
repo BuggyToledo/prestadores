@@ -170,7 +170,8 @@ export default function AdminDatabasePage() {
       }
 
       setSuccessMsg(
-        `Sincronização concluída com sucesso! ${data.stats?.providersSynced || 0} prestadores, ${data.stats?.categoriesSynced || 0} categorias e ${data.stats?.subcategoriesSynced || 0} subcategorias gravados no MySQL.`
+        data.message ||
+          `Sincronização concluída! ${data.stats?.categoriesSynced || 0} categorias, ${data.stats?.providersSynced || 0} prestadores e ${data.stats?.subcategoriesSynced || 0} subcategorias no MySQL.`
       );
       loadStatus();
     } catch (e: any) {
