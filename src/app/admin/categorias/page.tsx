@@ -15,41 +15,7 @@ import {
 } from 'lucide-react';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { authFetch } from '@/lib/apiClient';
-
-const AVAILABLE_ICONS = [
-  'Building2',
-  'Scale',
-  'HardHat',
-  'Wrench',
-  'Flame',
-  'Sparkles',
-  'Leaf',
-  'Package',
-  'Wifi',
-  'Users',
-  'HeartPulse',
-  'Landmark',
-  'Shield',
-  'ShieldAlert',
-  'Briefcase',
-  'Truck',
-  'Home',
-  'FileText',
-  'Settings',
-  'Heart',
-  'Bug',
-  'Recycle',
-  'Zap',
-  'Paintbrush',
-  'Hammer',
-  'Key',
-  'Computer',
-  'Camera',
-  'Plug',
-  'Car',
-  'Wind',
-  'Scissors',
-];
+import { CATEGORY_ICONS, EXTRA_ICONS } from '@/lib/categoryIcons';
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -266,6 +232,31 @@ export default function AdminCategoriesPage() {
         </div>
       )}
 
+      {/* Referência visual dos 12 ícones oficiais */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-xs">
+        <h2 className="text-sm font-black text-slate-900 mb-1">Ícones oficiais das 12 categorias</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          Disponíveis no seletor ao editar e como SVG em{' '}
+          <code className="bg-slate-100 px-1 rounded">/icons/categories/</code>
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {CATEGORY_ICONS.map((icon) => (
+            <div
+              key={icon.name}
+              className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100"
+            >
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                <CategoryIcon name={icon.name} className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800 leading-snug truncate">{icon.label}</p>
+                <p className="text-[10px] font-mono text-slate-400 mt-0.5">{icon.name}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Grid de Categorias */}
       {loading ? (
         <div className="p-16 flex flex-col items-center justify-center text-slate-400 gap-3">
@@ -281,8 +272,15 @@ export default function AdminCategoriesPage() {
             >
               <div>
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shadow-inner">
-                    <CategoryIcon name={cat.icon} className="w-6 h-6" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shadow-inner">
+                      <CategoryIcon name={cat.icon} className="w-6 h-6" />
+                    </div>
+                    {cat.icon && (
+                      <span className="text-[10px] font-mono text-slate-400 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded">
+                        {cat.icon}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1">
@@ -413,13 +411,56 @@ export default function AdminCategoriesPage() {
                 />
               </div>
 
-              {/* Seletor de Ícone */}
+              {/* Seletor de Ícone — 12 padrão com rótulo + extras */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                   Escolha o Ícone
                 </label>
-                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl max-h-36 overflow-y-auto">
-                  {AVAILABLE_ICONS.map((iconName) => {
+                <p className="text-xs text-slate-500 mb-2">
+                  Ícones das 12 categorias (também em{' '}
+                  <code className="bg-slate-100 px-1 rounded">/icons/categories/</code>)
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl max-h-56 overflow-y-auto mb-3">
+                  {CATEGORY_ICONS.map((icon) => {
+                    const isSelected = formData.icon === icon.name;
+                    return (
+                      <button
+                        type="button"
+                        key={icon.name}
+                        onClick={() => setFormData({ ...formData, icon: icon.name })}
+                        className={`flex items-center gap-3 p-2.5 rounded-xl text-left transition-all ${
+                          isSelected
+                            ? 'bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-400'
+                            : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                        }`}
+                        title={`${icon.name} — ${icon.label}`}
+                      >
+                        <span
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-slate-950 text-amber-400' : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          <CategoryIcon name={icon.name} className="w-5 h-5" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-xs font-bold leading-snug truncate">
+                            {icon.label}
+                          </span>
+                          <span
+                            className={`block text-[10px] font-mono mt-0.5 ${
+                              isSelected ? 'text-slate-800/70' : 'text-slate-400'
+                            }`}
+                          >
+                            {icon.name}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs font-semibold text-slate-500 mb-1.5">Outros ícones</p>
+                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl max-h-28 overflow-y-auto">
+                  {EXTRA_ICONS.map((iconName) => {
                     const isSelected = formData.icon === iconName;
                     return (
                       <button
