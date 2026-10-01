@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
+import { DEFAULT_CATEGORIES } from './defaultCategories';
 
 // Types for in-memory models
 export interface MockUser {
@@ -102,286 +103,20 @@ function initializeMockDb(): MockDatabase {
     },
   ];
 
-  const categories: MockCategory[] = [
-    {
-      id: 'cat_eletricistas',
-      name: 'Eletricistas',
-      slug: 'eletricistas',
-      description: 'Instalação elétrica, reparos em disjuntores, fiação, iluminação residencial e industrial.',
-      icon: 'Zap',
-      order: 1,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_encanadores',
-      name: 'Encanadores e Desentupidoras',
-      slug: 'encanadores',
-      description: 'Conserto de vazamentos, desentupimento, instalação de louças e tubulações hidráulicas.',
-      icon: 'Wrench',
-      order: 2,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_pintores',
-      name: 'Pintores e Acabamentos',
-      slug: 'pintores',
-      description: 'Pintura residencial, predial, texturas, massa corrida, impermeabilização e verniz.',
-      icon: 'Paintbrush',
-      order: 3,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_ar_condicionado',
-      name: 'Ar-Condicionado e Refrigeração',
-      slug: 'ar-condicionado',
-      description: 'Instalação, limpeza, manutenção preventiva e recarga de gás para ar-condicionado.',
-      icon: 'Wind',
-      order: 4,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_chaveiros',
-      name: 'Chaveiros 24 Horas',
-      slug: 'chaveiros',
-      description: 'Abertura de portas, cópia de chaves codificadas, troca de fechaduras residenciais e automotivas.',
-      icon: 'Key',
-      order: 5,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_marcenaria',
-      name: 'Marcenaria e Móveis Planejados',
-      slug: 'marcenaria',
-      description: 'Fabricação e conserto de móveis sob medida, restauração e montagem de móveis.',
-      icon: 'Hammer',
-      order: 6,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_mecanica',
-      name: 'Mecânica e Auto Center',
-      slug: 'mecanica',
-      description: 'Revisão mecânica, suspensão, freios, injeção eletrônica, alinhamento e balanceamento.',
-      icon: 'Car',
-      order: 7,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_limpeza',
-      name: 'Limpeza e Diaristas',
-      slug: 'limpeza',
-      description: 'Serviços de faxina residencial, limpeza pós-obra, higienização de estofados e tapetes.',
-      icon: 'Sparkles',
-      order: 8,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-  ];
+  const categories: MockCategory[] = DEFAULT_CATEGORIES.map((cat) => ({
+    id: cat.id,
+    name: cat.name,
+    slug: cat.slug,
+    description: cat.description,
+    icon: cat.icon,
+    order: cat.order,
+    createdAt: new Date('2024-01-01T00:00:00Z'),
+    updatedAt: new Date('2024-01-01T00:00:00Z'),
+  }));
 
-  const subcategories: MockSubcategory[] = [
-    { id: 'sub_elet_1', name: 'Instalação e Reparos', slug: 'elet-instalacao-reparos', description: null, order: 1, categoryId: 'cat_eletricistas', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_elet_2', name: 'Laudos e SPDA', slug: 'elet-laudos-spda', description: null, order: 2, categoryId: 'cat_eletricistas', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_elet_3', name: 'Padrão de Entrada', slug: 'elet-padrao-entrada', description: null, order: 3, categoryId: 'cat_eletricistas', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_enc_1', name: 'Caça-Vazamentos', slug: 'enc-caca-vazamentos', description: null, order: 1, categoryId: 'cat_encanadores', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_enc_2', name: 'Desentupimentos', slug: 'enc-desentupimentos', description: null, order: 2, categoryId: 'cat_encanadores', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_enc_3', name: 'Prumadas e Tubulações', slug: 'enc-prumadas-tubulacoes', description: null, order: 3, categoryId: 'cat_encanadores', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_pint_1', name: 'Pintura Residencial', slug: 'pint-residencial', description: null, order: 1, categoryId: 'cat_pintores', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_pint_2', name: 'Restauração de Fachadas', slug: 'pint-fachadas', description: null, order: 2, categoryId: 'cat_pintores', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_ar_1', name: 'Instalação de Split', slug: 'ar-instalacao-split', description: null, order: 1, categoryId: 'cat_ar-condicionado', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_ar_2', name: 'Higienização e PMOC', slug: 'ar-higienizacao-pmoc', description: null, order: 2, categoryId: 'cat_ar-condicionado', createdAt: new Date(), updatedAt: new Date() },
-  ];
-
-  const providers: MockProvider[] = [
-    {
-      id: 'prov_eletrosilva',
-      name: 'EletroSilva Serviços Elétricos',
-      slug: 'eletrosilva-servicos-eletricos',
-      cnpj: '12.345.678/0001-90',
-      phone: '(11) 3456-7890',
-      whatsapp: '11987654321',
-      email: 'contato@eletrosilva.com.br',
-      website: 'https://eletrosilva.com.br',
-      instagram: '@eletrosilva_eletrica',
-      address: 'Rua das Palmeiras, 150',
-      neighborhood: 'Jardins',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '01420-000',
-      description: 'Especialistas em instalações elétricas residenciais e comerciais. Atendimento emergencial 24 horas, troca de disjuntores, adequação de padrão de entrada e projetos luminotécnicos com garantia e emissão de ART.',
-      services: 'Instalação de tomadas e interruptores, Troca de fiação antiga, Instalação de chuveiros e aquecedores, Laudo elétrico, Montagem de quadros de distribuição',
-      logoUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&auto=format&fit=crop&q=80',
-      coverUrl: null,
-      isFeatured: true,
-      isActive: true,
-      viewsCount: 142,
-      categoryId: 'cat_eletricistas',
-      createdAt: new Date('2024-01-10T10:00:00Z'),
-      updatedAt: new Date('2024-01-10T10:00:00Z'),
-    },
-    {
-      id: 'prov_sos_agua_limpa',
-      name: 'SOS Desentupidora & Hidráulica Água Limpa',
-      slug: 'sos-desentupidora-hidraulica-agua-limpa',
-      cnpj: '23.456.789/0001-01',
-      phone: '(11) 4002-8922',
-      whatsapp: '11999887766',
-      email: 'atendimento@agualimpadesentupimento.com',
-      website: 'https://agualimpadesentupimento.com',
-      instagram: '@desentupidora_agualimpa',
-      address: 'Av. Paulista, 2000, Sala 42',
-      neighborhood: 'Bela Vista',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '01310-100',
-      description: 'Serviço rápido de caça-vazamentos não destrutivo com geofone, desentupimento de pias, ralos, vasos sanitários e redes de esgoto pluvial. Atendimento 24h sem taxa de visita.',
-      services: 'Caça vazamentos eletrônico, Desentupimento por hidrojateamento, Troca de tubulação, Instalação de válvulas de descarga, Limpeza de caixa de gordura',
-      logoUrl: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=400&auto=format&fit=crop&q=80',
-      coverUrl: null,
-      isFeatured: true,
-      isActive: true,
-      viewsCount: 98,
-      categoryId: 'cat_encanadores',
-      createdAt: new Date('2024-01-12T11:00:00Z'),
-      updatedAt: new Date('2024-01-12T11:00:00Z'),
-    },
-    {
-      id: 'prov_arte_cor',
-      name: 'Arte & Cor Pinturas Profissionais',
-      slug: 'arte-cor-pinturas-profissionais',
-      cnpj: '34.567.890/0001-12',
-      phone: '(11) 2233-4455',
-      whatsapp: '11977112233',
-      email: 'orcamento@arteecorpinturas.com.br',
-      website: 'https://arteecorpinturas.com.br',
-      instagram: '@artecor.pinturas',
-      address: 'Rua Augusta, 850',
-      neighborhood: 'Consolação',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '01304-001',
-      description: 'Equipe especializada em pintura de alto padrão, aplicação de cimento queimado, efeitos decorativos, restauração de fachadas e impermeabilização. Trabalhamos com limpeza total e proteção de todo o ambiente.',
-      services: 'Pintura interna e externa, Aplicação de cimento queimado e texturas, Massa corrida e gesso, Laqueação de portas e janelas, Verniz em decks e pergolados',
-      logoUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400&auto=format&fit=crop&q=80',
-      coverUrl: null,
-      isFeatured: false,
-      isActive: true,
-      viewsCount: 65,
-      categoryId: 'cat_pintores',
-      createdAt: new Date('2024-01-15T09:30:00Z'),
-      updatedAt: new Date('2024-01-15T09:30:00Z'),
-    },
-    {
-      id: 'prov_climafrio',
-      name: 'ClimaFrio Refrigeração e Ar-Condicionado',
-      slug: 'climafrio-refrigeracao-ar-condicionado',
-      cnpj: '45.678.901/0001-23',
-      phone: '(11) 3344-5566',
-      whatsapp: '11988223344',
-      email: 'contato@climafrio.com.br',
-      website: 'https://climafrio.com.br',
-      instagram: '@climafrio_refrigeracao',
-      address: 'Rua Domingos de Morais, 1200',
-      neighborhood: 'Vila Mariana',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '04010-100',
-      description: 'Venda, instalação e manutenção de sistemas de climatização Split, Multi Split e VRF. Higienização antibactericida completa e contratos PMOC para empresas.',
-      services: 'Instalação de Ar-Condicionado Split e Inverter, Higienização profunda com laudo, Carga de gás ecológico R410/R32, Manutenção de placas eletrônicas',
-      logoUrl: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400&auto=format&fit=crop&q=80',
-      coverUrl: null,
-      isFeatured: true,
-      isActive: true,
-      viewsCount: 112,
-      categoryId: 'cat_ar_condicionado',
-      createdAt: new Date('2024-01-18T14:15:00Z'),
-      updatedAt: new Date('2024-01-18T14:15:00Z'),
-    },
-    {
-      id: 'prov_chaveiro_express',
-      name: 'Chaveiro Express Central 24h',
-      slug: 'chaveiro-express-central-24h',
-      cnpj: '56.789.012/0001-34',
-      phone: '(11) 3100-2020',
-      whatsapp: '11991112222',
-      email: 'socorro@chaveiroexpress24h.com',
-      website: 'https://chaveiroexpress24h.com',
-      instagram: '@chaveiro_express24',
-      address: 'Rua Vergueiro, 500',
-      neighborhood: 'Liberdade',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '01504-000',
-      description: 'Unidade móvel de atendimento rápido em até 20 minutos para aberturas residenciais e automotivas, confecção de chaves pantográficas e canivete, troca de segredos e fechaduras digitais.',
-      services: 'Abertura de portas e cofres, Chaves codificadas automotivas, Instalação de fechaduras biométricas/digitais, Troca de cilindro e segredo',
-      logoUrl: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?w=400&auto=format&fit=crop&q=80',
-      coverUrl: null,
-      isFeatured: false,
-      isActive: true,
-      viewsCount: 77,
-      categoryId: 'cat_chaveiros',
-      createdAt: new Date('2024-01-20T16:00:00Z'),
-      updatedAt: new Date('2024-01-20T16:00:00Z'),
-    },
-    {
-      id: 'prov_studio_nobre',
-      name: 'Studio Nobre Móveis Planejados',
-      slug: 'studio-nobre-moveis-planejados',
-      cnpj: '67.890.123/0001-45',
-      phone: '(11) 2589-7412',
-      whatsapp: '11984445555',
-      email: 'projetos@studionobremarcenaria.com.br',
-      website: 'https://studionobremarcenaria.com.br',
-      instagram: '@studionobre_moveis',
-      address: 'Av. Moema, 680',
-      neighborhood: 'Moema',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '04077-020',
-      description: 'Marcenaria fina com tecnologia de ponta. Criamos cozinhas planejadas, closets, home theaters e mobiliário corporativo com acabamentos exclusivos em MDF 100%, amortecimento e iluminação embutida em LED.',
-      services: 'Cozinhas planejadas, Dormitórios e closets, Painéis ripados e divisórias, Mobiliário corporativo, Consultoria de projetos 3D',
-      logoUrl: 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=400&auto=format&fit=crop&q=80',
-      coverUrl: null,
-      isFeatured: true,
-      isActive: true,
-      viewsCount: 89,
-      categoryId: 'cat_marcenaria',
-      createdAt: new Date('2024-01-22T08:00:00Z'),
-      updatedAt: new Date('2024-01-22T08:00:00Z'),
-    },
-    {
-      id: 'prov_cleanmaster',
-      name: 'CleanMaster Higienização & Limpeza Profissional',
-      slug: 'cleanmaster-higienizacao-limpeza-profissional',
-      cnpj: '78.901.234/0001-56',
-      phone: '(11) 3211-9876',
-      whatsapp: '11993334444',
-      email: 'contato@cleanmasterlimpeza.com.br',
-      website: 'https://cleanmasterlimpeza.com.br',
-      instagram: '@cleanmaster_higienizacao',
-      address: 'Rua Teodoro Sampaio, 1800',
-      neighborhood: 'Pinheiros',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '05406-150',
-      description: 'Empresa especializada em limpeza pós-obra, higienização e impermeabilização de estofados, colchões, sofás e carpetes com produtos ecológicos certificados pela Anvisa.',
-      services: 'Limpeza pós-obra fina e pesada, Higienização de sofás e poltronas a seco, Impermeabilização de estofados, Limpeza de vidros em altura, Tratamento de pisos',
-      logoUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&auto=format&fit=crop&q=80',
-      coverUrl: null,
-      isFeatured: false,
-      isActive: true,
-      viewsCount: 54,
-      categoryId: 'cat_limpeza',
-      createdAt: new Date('2024-01-25T11:45:00Z'),
-      updatedAt: new Date('2024-01-25T11:45:00Z'),
-    },
-  ];
+  // Sem subcategorias e sem prestadores de exemplo — catálogo inicia só com as 12 categorias
+  const subcategories: MockSubcategory[] = [];
+  const providers: MockProvider[] = [];
 
   const banners: MockBanner[] = [
     {
@@ -423,6 +158,128 @@ export function generateUniqueId(prefix: string): string {
   const timestamp = Date.now();
   const rand = Math.random().toString(36).substring(2, 8);
   return `${prefix}_${timestamp}_${idSequence}_${rand}`;
+}
+
+/** Categorias do seed antigo → slug da nova categoria padrão. */
+const LEGACY_CATEGORY_REMAP: Record<string, string> = {
+  eletricistas: 'manutencao-predial-e-instalacoes',
+  encanadores: 'manutencao-predial-e-instalacoes',
+  pintores: 'obras-engenharia-e-laudos',
+  'ar-condicionado': 'manutencao-predial-e-instalacoes',
+  chaveiros: 'seguranca-e-prevencao-de-incendio',
+  marcenaria: 'obras-engenharia-e-laudos',
+  mecanica: 'servicos-operacionais-e-mao-de-obra',
+  limpeza: 'limpeza-conservacao-e-controle-de-pragas',
+  cat_eletricistas: 'manutencao-predial-e-instalacoes',
+  cat_encanadores: 'manutencao-predial-e-instalacoes',
+  cat_pintores: 'obras-engenharia-e-laudos',
+  cat_ar_condicionado: 'manutencao-predial-e-instalacoes',
+  cat_chaveiros: 'seguranca-e-prevencao-de-incendio',
+  cat_marcenaria: 'obras-engenharia-e-laudos',
+  cat_mecanica: 'servicos-operacionais-e-mao-de-obra',
+  cat_limpeza: 'limpeza-conservacao-e-controle-de-pragas',
+};
+
+/**
+ * Garante só as 12 categorias padrão (nome, ícone, ordem) no mock local.
+ * Remove qualquer outra categoria e todas as subcategorias.
+ * Prestadores ligados a categorias removidas são apagados.
+ */
+export function ensureDefaultCategories(mockDb: MockDatabase): boolean {
+  let changed = false;
+  const bySlug = new Map(mockDb.categories.map((c) => [c.slug, c]));
+  const defaultSlugs = new Set(DEFAULT_CATEGORIES.map((c) => c.slug));
+
+  for (const def of DEFAULT_CATEGORIES) {
+    const existing = bySlug.get(def.slug);
+    if (!existing) {
+      mockDb.categories.push({
+        id: def.id,
+        name: def.name,
+        slug: def.slug,
+        description: def.description,
+        icon: def.icon,
+        order: def.order,
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        updatedAt: new Date(),
+      });
+      bySlug.set(def.slug, mockDb.categories[mockDb.categories.length - 1]);
+      changed = true;
+      continue;
+    }
+
+    // Prefere o id fixo do catálogo padrão quando o slug já existe com id antigo
+    if (existing.id !== def.id) {
+      for (const provider of mockDb.providers) {
+        if (provider.categoryId === existing.id) {
+          provider.categoryId = def.id;
+          provider.subcategoryId = null;
+          changed = true;
+        }
+      }
+      existing.id = def.id;
+      changed = true;
+    }
+
+    if (
+      existing.name !== def.name ||
+      existing.icon !== def.icon ||
+      existing.order !== def.order ||
+      existing.description !== def.description
+    ) {
+      existing.name = def.name;
+      existing.icon = def.icon;
+      existing.order = def.order;
+      existing.description = def.description;
+      existing.updatedAt = new Date();
+      changed = true;
+    }
+  }
+
+  const categoryById = new Map(mockDb.categories.map((c) => [c.id, c]));
+  const categoryBySlug = new Map(mockDb.categories.map((c) => [c.slug, c]));
+
+  // Remapeia prestadores das categorias antigas para as novas (antes de apagar as legadas)
+  for (const provider of mockDb.providers) {
+    const current = categoryById.get(provider.categoryId);
+    const remapSlug =
+      LEGACY_CATEGORY_REMAP[provider.categoryId] ||
+      (current ? LEGACY_CATEGORY_REMAP[current.slug] : undefined);
+    if (!remapSlug) continue;
+    const target = categoryBySlug.get(remapSlug);
+    if (target && provider.categoryId !== target.id) {
+      provider.categoryId = target.id;
+      provider.subcategoryId = null;
+      changed = true;
+    }
+  }
+
+  // Mantém somente as 12 categorias padrão
+  const before = mockDb.categories.length;
+  mockDb.categories = mockDb.categories.filter((c) => defaultSlugs.has(c.slug));
+  if (mockDb.categories.length !== before) changed = true;
+
+  // Sem subcategorias no catálogo padrão
+  if (mockDb.subcategories.length > 0) {
+    mockDb.subcategories = [];
+    changed = true;
+  }
+
+  // Remove prestadores órfãos (categoria inexistente após o filtro)
+  const validCatIds = new Set(mockDb.categories.map((c) => c.id));
+  const provBefore = mockDb.providers.length;
+  mockDb.providers = mockDb.providers.filter((p) => validCatIds.has(p.categoryId));
+  if (mockDb.providers.length !== provBefore) changed = true;
+
+  // Ordem fixa das 12 categorias
+  const defaultSlugOrder = new Map(DEFAULT_CATEGORIES.map((c) => [c.slug, c.order]));
+  mockDb.categories.sort((a, b) => {
+    const oa = defaultSlugOrder.get(a.slug) ?? a.order + 1000;
+    const ob = defaultSlugOrder.get(b.slug) ?? b.order + 1000;
+    return oa - ob;
+  });
+
+  return changed;
 }
 
 export function sanitizeAndDeduplicateDb(mockDb: MockDatabase) {
@@ -519,6 +376,9 @@ if (!db.banners) {
   db.banners = [];
 }
 sanitizeAndDeduplicateDb(db);
+if (ensureDefaultCategories(db)) {
+  saveDbToDisk(db);
+}
 
 export function getMockDatabase(): MockDatabase {
   return db;
@@ -693,67 +553,166 @@ function attachCategoryProviders(category: MockCategory, include?: any) {
   return result;
 }
 
-const shouldUseRealPrisma = Boolean(process.env.DATABASE_URL) && process.env.USE_REAL_PRISMA !== 'false';
+/**
+ * MySQL real só é usado quando USE_REAL_PRISMA=true E DATABASE_URL está definida.
+ * Antes, qualquer DATABASE_URL ativava o Prisma e o fallback silencioso mascarava
+ * erros de INSERT — a API retornava sucesso sem gravar no MySQL.
+ */
+const shouldUseRealPrisma = (): boolean =>
+  Boolean(process.env.DATABASE_URL) && process.env.USE_REAL_PRISMA === 'true';
+
+/** Operações de escrita: nunca caem no mock quando o MySQL está ativo. */
+const WRITE_METHODS = new Set([
+  'create',
+  'createMany',
+  'update',
+  'updateMany',
+  'upsert',
+  'delete',
+  'deleteMany',
+]);
 
 let globalPrismaClient: PrismaClient | null = null;
-if (shouldUseRealPrisma) {
+
+function createPrismaClientInstance(): PrismaClient | null {
+  if (!shouldUseRealPrisma()) return null;
   try {
-    const globalForPrisma = globalThis as unknown as { prismaClient?: PrismaClient };
-    if (!globalForPrisma.prismaClient) {
-      globalForPrisma.prismaClient = new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-      });
-    }
-    globalPrismaClient = globalForPrisma.prismaClient;
+    return new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    });
   } catch (e) {
-    console.warn('[Prisma] Error creating PrismaClient instance, falling back to mock:', e);
+    console.warn('[Prisma] Error creating PrismaClient instance:', e);
+    return null;
   }
 }
 
-function createSafePrismaClient(realClient: PrismaClient, fallbackMock: any): PrismaClient {
+{
+  const globalForPrisma = globalThis as unknown as { prismaClient?: PrismaClient | null };
+  if (shouldUseRealPrisma()) {
+    if (!globalForPrisma.prismaClient) {
+      globalForPrisma.prismaClient = createPrismaClientInstance();
+    }
+    globalPrismaClient = globalForPrisma.prismaClient || null;
+  }
+}
+
+/**
+ * Recria o PrismaClient após alterar DATABASE_URL / USE_REAL_PRISMA em runtime
+ * (ex.: painel Admin > Banco). Sem isso, a config nova não entra em vigor.
+ */
+export async function reinitializePrismaClient(): Promise<{ active: boolean }> {
+  const globalForPrisma = globalThis as unknown as { prismaClient?: PrismaClient | null };
+
+  if (globalForPrisma.prismaClient) {
+    try {
+      await globalForPrisma.prismaClient.$disconnect();
+    } catch {}
+  }
+
+  globalForPrisma.prismaClient = null;
+  globalPrismaClient = null;
+
+  if (shouldUseRealPrisma()) {
+    const client = createPrismaClientInstance();
+    globalForPrisma.prismaClient = client;
+    globalPrismaClient = client;
+  }
+
+  return { active: Boolean(globalPrismaClient) };
+}
+
+export function isRealPrismaEnabled(): boolean {
+  return shouldUseRealPrisma() && Boolean(globalPrismaClient);
+}
+
+function getActiveRealClient(): PrismaClient | null {
+  return globalPrismaClient;
+}
+
+/**
+ * Proxy que encaminha para o PrismaClient MySQL atual (se ativo).
+ * Lê sempre o client vivo — assim reinitializePrismaClient() passa a valer
+ * sem precisar reiniciar o processo Node.
+ */
+function createAdaptivePrismaClient(fallbackMock: any): PrismaClient {
   return new Proxy(fallbackMock, {
     get(target, prop) {
+      const realClient = getActiveRealClient();
+
       if (prop === '$disconnect') {
         return async () => {
+          if (!realClient) return;
           try {
             await realClient.$disconnect();
           } catch {}
         };
       }
+
+      // Sem MySQL ativo → mock puro
+      if (!realClient) {
+        return target[prop];
+      }
+
+      if (prop === '$queryRaw' || prop === '$executeRaw' || prop === '$transaction') {
+        const realFn = (realClient as any)[prop];
+        if (typeof realFn === 'function') {
+          return (...args: any[]) => realFn.apply(realClient, args);
+        }
+      }
+
       const realTarget = (realClient as any)[prop];
       const mockTarget = target[prop];
 
       if (!realTarget) return mockTarget;
       if (typeof realTarget === 'function') {
         return async (...args: any[]) => {
-          try {
-            return await realTarget.apply(realClient, args);
-          } catch (err: any) {
-            console.warn(`[Prisma Safe Mode] Fallback on ${String(prop)}:`, err?.message || err);
-            return typeof mockTarget === 'function' ? mockTarget.apply(target, args) : mockTarget;
-          }
+          return await realTarget.apply(realClient, args);
         };
       }
 
-      // If it's a model like user, category, provider
+      // Model delegates (user, category, provider, ...)
       return new Proxy(mockTarget || {}, {
         get(mTarget, mProp) {
-          const realMethod = realTarget[mProp];
+          const methodName = String(mProp);
+          // Resolve o client no momento da chamada (após possível reinit)
+          const liveClient = getActiveRealClient();
+          if (!liveClient) {
+            const mockMethod = mTarget[mProp];
+            return typeof mockMethod === 'function'
+              ? (...args: any[]) => mockMethod.apply(mTarget, args)
+              : mockMethod;
+          }
+
+          const liveModel = (liveClient as any)[prop];
+          const realMethod = liveModel?.[mProp];
           const mockMethod = mTarget[mProp];
           if (typeof realMethod !== 'function') return mockMethod;
 
           return async (...args: any[]) => {
             try {
-              return await realMethod.apply(realTarget, args);
+              return await realMethod.apply(liveModel, args);
             } catch (err: any) {
-              console.warn(
-                `[Prisma Safe Mode] Connection failed on ${String(prop)}.${String(mProp)}, using in-memory store:`,
-                err?.message || err
-              );
-              if (typeof mockMethod === 'function') {
+              // Escritas NÃO podem fingir sucesso no mock — isso fazia o admin
+              // achar que o prestador foi salvo no MySQL quando não foi.
+              if (WRITE_METHODS.has(methodName)) {
+                console.error(
+                  `[Prisma] Falha ao gravar em ${String(prop)}.${methodName} (MySQL):`,
+                  err?.message || err
+                );
+                throw err;
+              }
+
+              // Leituras: só usam mock se for erro de conexão (não schema/FK).
+              const { isConnectionError } = await import('./dbError');
+              if (isConnectionError(err) && typeof mockMethod === 'function') {
+                console.warn(
+                  `[Prisma Safe Mode] Conexão falhou em ${String(prop)}.${methodName}, usando store local:`,
+                  err?.message || err
+                );
                 return await mockMethod.apply(mTarget, args);
               }
-              return null;
+
+              throw err;
             }
           };
         },
@@ -1227,7 +1186,5 @@ const mockPrisma = {
   },
 };
 
-export const prisma: PrismaClient = (
-  globalPrismaClient ? createSafePrismaClient(globalPrismaClient, mockPrisma) : mockPrisma
-) as unknown as PrismaClient;
+export const prisma: PrismaClient = createAdaptivePrismaClient(mockPrisma) as unknown as PrismaClient;
 
