@@ -70,11 +70,11 @@ model Provider {
   phone        String?
   whatsapp     String?
   email        String?
-  website      String?
-  instagram    String?
+  website      String?  @db.Text
+  instagram    String?  @db.Text
   
   // Endereço
-  address      String?
+  address      String?  @db.Text
   neighborhood String?
   city         String
   state        String

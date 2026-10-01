@@ -12,23 +12,40 @@ Este guia passo a passo explica como publicar o site no seu próprio domínio e 
 
 ---
 
-## 2. Como Configurar o Banco de Dados MySQL
+## 2. Como Configurar o Banco de Dados MySQL (DreamHost)
 
-### Passo A: Criar a base de dados no seu provedor MySQL
-No painel da sua hospedagem (ex: cPanel, phpMyAdmin, Hostinger ou Cloud):
-1. Crie um novo banco de dados: por exemplo `catalogo_sindicone`.
-2. Crie um usuário para o banco (ex: `sindico_user`) com uma senha forte.
-3. Conceda **TODOS OS PRIVILÉGIOS** para esse usuário no banco de dados criado.
+Este projeto usa MySQL na **DreamHost** com o front na **Vercel**.
+
+### Passo A: Criar banco e usuário na DreamHost
+1. Acesse [panel.dreamhost.com](https://panel.dreamhost.com/) → **Databases → MySQL Databases**.
+2. Crie o banco (ex.: `catalogo_servicos`).
+3. Crie o usuário (ex.: `prestadores`) com senha forte.
+4. Clique no **nome do usuário** → campo **Allowable Hosts**.  
+   O padrão da DreamHost é só `%.dreamhost.com`, e isso **bloqueia a Vercel**.  
+   Deixe uma entrada por linha:
+   ```
+   %.dreamhost.com
+   %.amazonaws.com
+   %
+   ```
+   Clique em **Modify [usuário] now!**.
+5. Anote o **MySQL hostname** (ex.: `mysql.sindicone.com.br`) — **não** use `localhost` na Vercel.
+
+> Sem as linhas `%.amazonaws.com` e `%`, o erro continua:  
+> `Access denied for user 'prestadores'@'ec2-....amazonaws.com'`.
 
 ### Passo B: Formato da URL de Conexão (`DATABASE_URL`)
-A string de conexão deve seguir este formato:
 ```env
-DATABASE_URL="mysql://USUARIO:SENHA@HOST:3306/NOME_DO_BANCO"
+DATABASE_URL="mysql://USUARIO:SENHA@mysql.seudominio.com:3306/NOME_DO_BANCO"
 ```
-*Exemplo real:*
+*Exemplo DreamHost:*
 ```env
-DATABASE_URL="mysql://sindico_user:MinhaSenhaForte123@sql123.hostinger.com:3306/catalogo_sindicone"
+DATABASE_URL="mysql://prestadores:MinhaSenhaForte123@mysql.sindicone.com.br:3306/catalogo_servicos"
+USE_REAL_PRISMA="true"
 ```
+
+> Se a senha tiver `@`, `#`, `%` ou `&`, faça URL-encode na `DATABASE_URL`  
+> (ex.: `@` → `%40`).
 
 ### Passo C: Criar as tabelas automaticamente (Migração Prisma)
 No seu computador ou terminal do servidor onde o projeto está clonado:

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 import {
   Upload,
   Download,
@@ -16,25 +17,23 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { authFetch } from '@/lib/apiClient';
+import {
+  ParsedProvider,
+  PROVIDER_IMPORT_HEADERS,
+  PROVIDER_IMPORT_SAMPLE_ROWS,
+  buildSampleCsvContent,
+  csvTextToMatrix,
+  parseProviderMatrix,
+} from '@/lib/providerImportParse';
 
-interface ParsedProvider {
-  name: string;
-  category: string;
-  subcategory?: string;
-  city: string;
-  state: string;
-  phone?: string;
-  whatsapp?: string;
-  email?: string;
-  address?: string;
-  neighborhood?: string;
-  zipCode?: string;
-  cnpj?: string;
-  website?: string;
-  instagram?: string;
-  description?: string;
-  services?: string;
-  isFeatured?: boolean;
+function isExcelFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return (
+    name.endsWith('.xlsx') ||
+    name.endsWith('.xls') ||
+    file.type.includes('spreadsheet') ||
+    file.type.includes('excel')
+  );
 }
 
 export function ProviderImport() {
@@ -52,16 +51,8 @@ export function ProviderImport() {
     errors: Array<{ row: number; name?: string; message: string }>;
   } | null>(null);
 
-  // Função para baixar o modelo de exemplo diretamente no navegador
-  const handleDownloadSample = () => {
-    const csvContent =
-      '\uFEFFNome;Categoria;Subcategoria;Cidade;Estado;Telefone;WhatsApp;Email;Endereco;Bairro;CEP;CNPJ;Site;Instagram;Descricao;Servicos;Destaque\n' +
-      'Apex Engenharia Predial;Manutenção Predial;Reformas de Fachadas;São Paulo;SP;(11) 3214-5500;(11) 98765-4321;contato@apexpredial.com.br;Av. Paulista, 1000;Bela Vista;01310-100;12.345.678/0001-90;https://apexpredial.com.br;@apexpredial;Especializada em reformas de fachadas, impermeabilização e manutenção condominial.;Impermeabilização, Restauração de Fachadas, Pintura Externa;SIM\n' +
-      'Volts Engenharia Elétrica;Eletricista;Laudos e SPDA;Rio de Janeiro;RJ;(21) 2555-8900;(21) 99887-1122;atendimento@voltseng.com.br;Rua Barata Ribeiro, 450;Copacabana;22040-001;98.765.432/0001-10;;@volts.eletrica;Laudos elétricos para condomínios, adequação de PC, SPDA e termografia.;Laudo Elétrico, SPDA, Pára-raios, Adequação de PC;SIM\n' +
-      'Drenosul Desentupidora;Encanador;Caça-Vazamentos;Porto Alegre;RS;(51) 3344-9988;(51) 98111-2233;contato@drenosul.com.br;Av. Ipiranga, 6600;Partenon;90619-900;;;;Desentupimento preventivo de prumadas, hidrojateamento e caça-vazamentos.;Desentupimento de Prumadas, Hidrojateamento, Vídeo Inspeção;NAO\n' +
-      'SegurTech Portaria e CFTV;Segurança e CFTV;Controle de Acesso;Belo Horizonte;MG;(31) 3456-7890;(31) 98877-6655;comercial@segurtech.com.br;Av. do Contorno, 5000;Funcionários;30110-028;45.678.901/0001-23;https://segurtech.com.br;@segurtech;Instalação e manutenção de portaria eletrônica, interfonia e câmeras de monitoramento.;Controle de Acesso, Câmeras IP, Interfonia Condominial;SIM\n' +
-      'Verde Vida Paisagismo Condominial;Jardinagem;Manutenção de Jardins;Curitiba;PR;(41) 3012-3344;(41) 99123-4567;contato@verdevida.com;Rua XV de Novembro, 1200;Centro;80060-000;;;@verdevida.jardins;Manutenção de jardins e áreas verdes para condomínios residenciais e comerciais.;Corte de Grama, Poda de Árvores, Plantio de Flores, Irrigação;NAO\n';
-
+  const handleDownloadSampleCsv = () => {
+    const csvContent = buildSampleCsvContent();
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -70,33 +61,18 @@ export function ProviderImport() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
-  // Parser robusto para linhas CSV respeitando aspas
-  const parseCSVLine = (line: string, delimiter: string): string[] => {
-    const result: string[] = [];
-    let cur = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          cur += '"';
-          i++; // pular quote escapada
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === delimiter && !inQuotes) {
-        result.push(cur.trim());
-        cur = '';
-      } else {
-        cur += char;
-      }
-    }
-    result.push(cur.trim());
-    return result;
+  const handleDownloadSampleXlsx = () => {
+    const aoa = [Array.from(PROVIDER_IMPORT_HEADERS), ...PROVIDER_IMPORT_SAMPLE_ROWS];
+    const worksheet = XLSX.utils.aoa_to_sheet(aoa);
+    worksheet['!cols'] = PROVIDER_IMPORT_HEADERS.map((header) => ({
+      wch: Math.max(14, header.length + 2),
+    }));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Prestadores');
+    XLSX.writeFile(workbook, 'modelo_importacao_prestadores.xlsx');
   };
 
   const handleFile = async (file: File) => {
@@ -107,120 +83,31 @@ export function ProviderImport() {
     setFileName(file.name);
 
     try {
-      const text = await file.text();
-      const lines = text
-        .replace(/\r\n/g, '\n')
-        .replace(/\r/g, '\n')
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0);
+      let matrix: unknown[][];
 
-      if (lines.length < 2) {
-        throw new Error('O arquivo precisa ter pelo menos o cabeçalho e 1 linha com dados.');
-      }
-
-      // Detectar delimitador (';' ou ',')
-      const firstLine = lines[0];
-      const countSemicolon = (firstLine.match(/;/g) || []).length;
-      const countComma = (firstLine.match(/,/g) || []).length;
-      const countTab = (firstLine.match(/\t/g) || []).length;
-
-      let delimiter = ';';
-      if (countComma > countSemicolon && countComma > countTab) {
-        delimiter = ',';
-      } else if (countTab > countSemicolon && countTab > countComma) {
-        delimiter = '\t';
-      }
-
-      const headers = parseCSVLine(lines[0], delimiter).map((h) =>
-        h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
-      );
-
-      // Índices das colunas
-      const findIndex = (aliases: string[]) =>
-        headers.findIndex((h) => aliases.some((a) => h.includes(a)));
-
-      const idxName = findIndex(['nome', 'prestador', 'empresa', 'profissional', 'razao']);
-      const idxCategory = findIndex(['categoria', 'segmento', 'ramo', 'servico principal']);
-      const idxSubcategory = findIndex(['subcategoria', 'sub-categoria', 'sub categoria', 'especialidade']);
-      const idxCity = findIndex(['cidade', 'municipio']);
-      const idxState = findIndex(['estado', 'uf']);
-      const idxPhone = findIndex(['telefone', 'fone', 'tel']);
-      const idxWhatsapp = findIndex(['whatsapp', 'whats', 'celular', 'cel']);
-      const idxEmail = findIndex(['email', 'e-mail']);
-      const idxAddress = findIndex(['endereco', 'logradouro', 'rua']);
-      const idxNeighborhood = findIndex(['bairro']);
-      const idxZipCode = findIndex(['cep']);
-      const idxCnpj = findIndex(['cnpj', 'cpf']);
-      const idxWebsite = findIndex(['site', 'website', 'url', 'pagina']);
-      const idxInstagram = findIndex(['instagram', 'insta', 'rede']);
-      const idxDescription = findIndex(['descricao', 'sobre', 'apresentacao']);
-      const idxServices = findIndex(['servicos', 'especialidades', 'atuacao']);
-      const idxFeatured = findIndex(['destaque', 'destacado', 'vip', 'premium']);
-
-      if (idxName === -1) {
-        throw new Error('Não foi possível identificar a coluna de "Nome" no cabeçalho do arquivo.');
-      }
-
-      const parsed: ParsedProvider[] = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        const row = parseCSVLine(lines[i], delimiter);
-        if (row.length === 0 || (row.length === 1 && !row[0])) continue;
-
-        const name = row[idxName] || '';
-        if (!name) continue;
-
-        const category = idxCategory !== -1 ? row[idxCategory] || 'Geral' : 'Geral';
-        const subcategory = idxSubcategory !== -1 ? row[idxSubcategory] || '' : '';
-        const city = idxCity !== -1 ? row[idxCity] || 'São Paulo' : 'São Paulo';
-        const state = idxState !== -1 ? row[idxState] || 'SP' : 'SP';
-        const phone = idxPhone !== -1 ? row[idxPhone] : '';
-        const whatsapp = idxWhatsapp !== -1 ? row[idxWhatsapp] : '';
-        const email = idxEmail !== -1 ? row[idxEmail] : '';
-        const address = idxAddress !== -1 ? row[idxAddress] : '';
-        const neighborhood = idxNeighborhood !== -1 ? row[idxNeighborhood] : '';
-        const zipCode = idxZipCode !== -1 ? row[idxZipCode] : '';
-        const cnpj = idxCnpj !== -1 ? row[idxCnpj] : '';
-        const website = idxWebsite !== -1 ? row[idxWebsite] : '';
-        const instagram = idxInstagram !== -1 ? row[idxInstagram] : '';
-        const description = idxDescription !== -1 ? row[idxDescription] : '';
-        const services = idxServices !== -1 ? row[idxServices] : '';
-        
-        let isFeatured = false;
-        if (idxFeatured !== -1 && row[idxFeatured]) {
-          const val = row[idxFeatured].toLowerCase().trim();
-          isFeatured = val === 'sim' || val === 'true' || val === '1' || val === 's';
+      if (isExcelFile(file)) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array', cellDates: false });
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          throw new Error('A planilha Excel está vazia (nenhuma aba encontrada).');
         }
-
-        parsed.push({
-          name,
-          category,
-          subcategory,
-          city,
-          state,
-          phone,
-          whatsapp,
-          email,
-          address,
-          neighborhood,
-          zipCode,
-          cnpj,
-          website,
-          instagram,
-          description,
-          services,
-          isFeatured,
-        });
+        const sheet = workbook.Sheets[firstSheetName];
+        matrix = XLSX.utils.sheet_to_json(sheet, {
+          header: 1,
+          defval: '',
+          raw: false,
+          blankrows: false,
+        }) as unknown[][];
+      } else {
+        const text = await file.text();
+        matrix = csvTextToMatrix(text);
       }
 
-      if (parsed.length === 0) {
-        throw new Error('Nenhum registro com nome preenchido foi encontrado no arquivo.');
-      }
-
+      const parsed = parseProviderMatrix(matrix);
       setParsedRows(parsed);
     } catch (err: any) {
-      setParseError(err.message || 'Erro ao processar o arquivo CSV.');
+      setParseError(err.message || 'Erro ao processar o arquivo.');
       setParsedRows([]);
     } finally {
       setIsParsing(false);
@@ -300,18 +187,28 @@ export function ProviderImport() {
             Baixe a planilha modelo de exemplo
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Utilize nosso arquivo CSV pré-configurado com as colunas corretas (Nome, Categoria, Cidade, Estado, WhatsApp, etc.). Compatível com Microsoft Excel, Google Planilhas e LibreOffice.
+            Arquivo com as colunas corretas (Nome, Categoria, Cidade, Estado, WhatsApp, etc.).
+            Disponível em <strong>Excel (.xlsx)</strong> e <strong>CSV</strong> — compatível com
+            Microsoft Excel, Google Planilhas e LibreOffice.
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
           <button
-            onClick={handleDownloadSample}
+            onClick={handleDownloadSampleXlsx}
             type="button"
             className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-3 rounded-2xl shadow-sm hover:shadow-md transition-all text-sm cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            <span>Baixar Arquivo Modelo (.CSV)</span>
+            <span>Baixar Modelo (.XLSX)</span>
+          </button>
+          <button
+            onClick={handleDownloadSampleCsv}
+            type="button"
+            className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 font-bold px-5 py-3 rounded-2xl border border-slate-200 shadow-xs transition-all text-sm cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-amber-600" />
+            <span>Baixar Modelo (.CSV)</span>
           </button>
         </div>
       </div>
@@ -328,7 +225,8 @@ export function ProviderImport() {
                 Importação concluída com sucesso!
               </h3>
               <p className="text-sm text-emerald-800 mt-1">
-                Foram cadastrados <strong>{importResult.count} prestador(es)</strong> no catálogo do Guia Síndico Né!.
+                Foram cadastrados <strong>{importResult.count} prestador(es)</strong> no catálogo do
+                Guia Síndico Né!.
                 {importResult.failed > 0 && ` (${importResult.failed} registro(s) com erro).`}
               </p>
 
@@ -336,7 +234,9 @@ export function ProviderImport() {
                 <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 space-y-1">
                   <div className="font-bold">Avisos da importação:</div>
                   {importResult.errors.map((e, idx) => (
-                    <div key={idx}>Linha {e.row}: {e.message}</div>
+                    <div key={idx}>
+                      Linha {e.row}: {e.message}
+                    </div>
                   ))}
                 </div>
               )}
@@ -390,7 +290,7 @@ export function ProviderImport() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv,text/csv,text/plain"
+            accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
             className="hidden"
           />
@@ -405,10 +305,13 @@ export function ProviderImport() {
 
           <div>
             <h3 className="text-base sm:text-lg font-bold text-slate-900">
-              {isParsing ? 'Processando arquivo...' : 'Arraste seu arquivo CSV aqui ou clique para selecionar'}
+              {isParsing
+                ? 'Processando arquivo...'
+                : 'Arraste seu arquivo aqui ou clique para selecionar'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Suporta arquivos nos formatos <strong>.CSV</strong> codificados em UTF-8 com separador por vírgula (,) ou ponto e vírgula (;)
+              Formatos aceitos: <strong>.XLSX</strong> (Excel) e <strong>.CSV</strong> (UTF-8,
+              separador <code>;</code> ou <code>,</code>)
             </p>
           </div>
 
@@ -428,8 +331,8 @@ export function ProviderImport() {
                 <FileSpreadsheet className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <span>{fileName || 'Arquivo CSV'}</span>
+                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2 flex-wrap">
+                  <span>{fileName || 'Arquivo'}</span>
                   <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
                     {parsedRows.length} prestador(es) pronto(s)
                   </span>
@@ -472,7 +375,6 @@ export function ProviderImport() {
             </div>
           </div>
 
-          {/* Tabela de Prévia */}
           <div className="overflow-x-auto max-h-[420px] rounded-2xl border border-slate-100">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-700 uppercase font-bold text-[10px] tracking-wider sticky top-0 border-b border-slate-200">
@@ -488,12 +390,12 @@ export function ProviderImport() {
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                 {parsedRows.slice(0, 50).map((row, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 px-4 text-slate-400 text-[11px] font-bold">
-                      {idx + 1}
-                    </td>
+                    <td className="py-3 px-4 text-slate-400 text-[11px] font-bold">{idx + 1}</td>
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-900">{row.name}</div>
-                      {row.cnpj && <div className="text-[10px] text-slate-400">CNPJ: {row.cnpj}</div>}
+                      {row.cnpj && (
+                        <div className="text-[10px] text-slate-400">CNPJ: {row.cnpj}</div>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex flex-col gap-1 items-start">
@@ -508,7 +410,9 @@ export function ProviderImport() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <div>{row.city} / {row.state}</div>
+                      <div>
+                        {row.city} / {row.state}
+                      </div>
                       {row.neighborhood && (
                         <div className="text-[10px] text-slate-400">{row.neighborhood}</div>
                       )}
@@ -540,7 +444,8 @@ export function ProviderImport() {
 
           {parsedRows.length > 50 && (
             <p className="text-xs text-slate-500 text-center py-2">
-              Mostrando as primeiras 50 de {parsedRows.length} linhas. Todas as linhas serão importadas ao confirmar.
+              Mostrando as primeiras 50 de {parsedRows.length} linhas. Todas as linhas serão
+              importadas ao confirmar.
             </p>
           )}
         </div>
@@ -553,10 +458,27 @@ export function ProviderImport() {
           <span>Orientações para preenchimento da planilha</span>
         </h4>
         <ul className="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
-          <li><strong>Campos obrigatórios:</strong> Nome da empresa ou profissional. Se Cidade ou Estado não forem informados, serão preenchidos com os padrões (São Paulo/SP).</li>
-          <li><strong>Categorias e Subcategorias:</strong> Se a categoria ou subcategoria informada na planilha ainda não existir no catálogo, ela será <strong>criada e associada automaticamente</strong> durante a importação.</li>
-          <li><strong>Contatos:</strong> Preencha o WhatsApp com DDD para habilitar o botão de contato direto dos síndicos.</li>
-          <li><strong>Destaque:</strong> Utilize <code>SIM</code> ou <code>NAO</code> para indicar se a empresa deve aparecer na seção de prestadores em destaque.</li>
+          <li>
+            <strong>Formatos:</strong> envie <code>.xlsx</code> (Excel) ou <code>.csv</code>. No
+            Excel, a primeira aba da planilha é a que será lida.
+          </li>
+          <li>
+            <strong>Campos obrigatórios:</strong> Nome da empresa ou profissional. Se Cidade ou
+            Estado não forem informados, serão preenchidos com os padrões (São Paulo/SP).
+          </li>
+          <li>
+            <strong>Categorias e Subcategorias:</strong> Se a categoria ou subcategoria informada
+            ainda não existir no catálogo, ela será{' '}
+            <strong>criada e associada automaticamente</strong> durante a importação.
+          </li>
+          <li>
+            <strong>Contatos:</strong> Preencha o WhatsApp com DDD para habilitar o botão de contato
+            direto dos síndicos.
+          </li>
+          <li>
+            <strong>Destaque:</strong> Utilize <code>SIM</code> ou <code>NAO</code> para indicar se
+            a empresa deve aparecer na seção de prestadores em destaque.
+          </li>
         </ul>
       </div>
     </div>
