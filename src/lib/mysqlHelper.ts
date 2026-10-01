@@ -205,8 +205,11 @@ export async function createTablesInMySql(conn: mysql.Connection): Promise<void>
 export async function syncDatabaseToMySql(conn: mysql.Connection, db: MockDatabase): Promise<{
   usersSynced: number;
   categoriesSynced: number;
+  categoriesDeleted: number;
   subcategoriesSynced: number;
+  subcategoriesDeleted: number;
   providersSynced: number;
+  providersDeleted: number;
   bannersSynced: number;
   skippedSubcategories: number;
   skippedProviders: number;
@@ -226,6 +229,7 @@ export async function syncDatabaseToMySql(conn: mysql.Connection, db: MockDataba
   const validSubcategoryIds = new Set(
     (db.subcategories || []).filter((s) => validCategoryIds.has(s.categoryId)).map((s) => s.id)
   );
+  const localProviderIds = new Set((db.providers || []).map((p) => p.id));
 
   // Desliga FKs só durante a carga (evita ordem/legado quebrando o sync)
   await conn.query('SET FOREIGN_KEY_CHECKS = 0');
@@ -291,6 +295,18 @@ export async function syncDatabaseToMySql(conn: mysql.Connection, db: MockDataba
       categoriesSynced++;
     }
 
+    // Remove categorias que não estão no catálogo local (só as 12 padrão)
+    let categoriesDeleted = 0;
+    const categoryIdList = [...validCategoryIds];
+    if (categoryIdList.length > 0) {
+      const placeholders = categoryIdList.map(() => '?').join(',');
+      const [delCats] = await conn.query<any>(
+        `DELETE FROM categories WHERE id NOT IN (${placeholders})`,
+        categoryIdList
+      );
+      categoriesDeleted = Number(delCats?.affectedRows || 0);
+    }
+
     // 4. Sincronizar Subcategorias — só as com categoryId válido
     let subcategoriesSynced = 0;
     let skippedSubcategories = 0;
@@ -308,11 +324,20 @@ export async function syncDatabaseToMySql(conn: mysql.Connection, db: MockDataba
       subcategoriesSynced++;
     }
 
-    // Remove no MySQL subcategorias órfãs (categoryId inexistente)
-    await conn.query(
-      `DELETE FROM subcategories
-       WHERE categoryId NOT IN (SELECT id FROM (SELECT id FROM categories) AS valid_cats)`
-    );
+    // Espelha subcategorias: remove as que não estão no mock local
+    let subcategoriesDeleted = 0;
+    if (validSubcategoryIds.size === 0) {
+      const [delSubs] = await conn.query<any>('DELETE FROM subcategories');
+      subcategoriesDeleted = Number(delSubs?.affectedRows || 0);
+    } else {
+      const subIdList = [...validSubcategoryIds];
+      const placeholders = subIdList.map(() => '?').join(',');
+      const [delSubs] = await conn.query<any>(
+        `DELETE FROM subcategories WHERE id NOT IN (${placeholders})`,
+        subIdList
+      );
+      subcategoriesDeleted = Number(delSubs?.affectedRows || 0);
+    }
 
     // 5. Sincronizar Prestadores
     let providersSynced = 0;
@@ -372,22 +397,20 @@ export async function syncDatabaseToMySql(conn: mysql.Connection, db: MockDataba
       providersSynced++;
     }
 
-    // Prestadores no MySQL apontando para categoria inexistente → categoria padrão (primeira)
-    const fallbackCategoryId = db.categories[0]?.id;
-    if (fallbackCategoryId) {
-      await conn.query(
-        `UPDATE providers
-         SET categoryId = ?, subcategoryId = NULL
-         WHERE categoryId NOT IN (SELECT id FROM (SELECT id FROM categories) AS valid_cats)`,
-        [fallbackCategoryId]
+    // Espelha prestadores: apaga no MySQL os que não estão no mock local
+    let providersDeleted = 0;
+    if (localProviderIds.size === 0) {
+      const [delProvs] = await conn.query<any>('DELETE FROM providers');
+      providersDeleted = Number(delProvs?.affectedRows || 0);
+    } else {
+      const providerIdList = [...localProviderIds];
+      const placeholders = providerIdList.map(() => '?').join(',');
+      const [delProvs] = await conn.query<any>(
+        `DELETE FROM providers WHERE id NOT IN (${placeholders})`,
+        providerIdList
       );
+      providersDeleted = Number(delProvs?.affectedRows || 0);
     }
-    await conn.query(
-      `UPDATE providers
-       SET subcategoryId = NULL
-       WHERE subcategoryId IS NOT NULL
-         AND subcategoryId NOT IN (SELECT id FROM (SELECT id FROM subcategories) AS valid_subs)`
-    );
 
     // 6. Sincronizar Banners
     let bannersSynced = 0;
@@ -422,8 +445,11 @@ export async function syncDatabaseToMySql(conn: mysql.Connection, db: MockDataba
     return {
       usersSynced,
       categoriesSynced,
+      categoriesDeleted,
       subcategoriesSynced,
+      subcategoriesDeleted,
       providersSynced,
+      providersDeleted,
       bannersSynced,
       skippedSubcategories,
       skippedProviders,

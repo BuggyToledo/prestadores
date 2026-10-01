@@ -65,10 +65,14 @@ export async function POST(request: Request) {
         stats.skippedSubcategories || stats.skippedProviders
           ? ` (${stats.skippedSubcategories} subcategoria(s) e ${stats.skippedProviders} prestador(es) ignorados por vínculo inválido)`
           : '';
+      const deleteHint =
+        stats.providersDeleted || stats.categoriesDeleted || stats.subcategoriesDeleted
+          ? ` Removidos no MySQL: ${stats.providersDeleted} prestador(es), ${stats.categoriesDeleted} categoria(s), ${stats.subcategoriesDeleted} subcategoria(s).`
+          : '';
 
       return NextResponse.json({
         success: true,
-        message: `Dados sincronizados com sucesso para o MySQL!${skipHint}`,
+        message: `Dados sincronizados com sucesso para o MySQL!${skipHint}${deleteHint}`,
         stats,
       });
     } catch (syncErr: any) {

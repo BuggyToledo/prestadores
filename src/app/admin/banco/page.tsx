@@ -171,7 +171,10 @@ export default function AdminDatabasePage() {
 
       setSuccessMsg(
         data.message ||
-          `Sincronização concluída! ${data.stats?.categoriesSynced || 0} categorias, ${data.stats?.providersSynced || 0} prestadores e ${data.stats?.subcategoriesSynced || 0} subcategorias no MySQL.`
+          `Sincronização concluída! ${data.stats?.categoriesSynced || 0} categorias, ${data.stats?.providersSynced || 0} prestadores e ${data.stats?.subcategoriesSynced || 0} subcategorias no MySQL.` +
+            (data.stats?.providersDeleted || data.stats?.categoriesDeleted
+              ? ` Removidos: ${data.stats?.providersDeleted || 0} prestadores, ${data.stats?.categoriesDeleted || 0} categorias.`
+              : '')
       );
       loadStatus();
     } catch (e: any) {
