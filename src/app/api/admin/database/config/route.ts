@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { buildDatabaseUrl, parseDatabaseUrl, testMySqlConnection } from '@/lib/mysqlHelper';
+import { reinitializePrismaClient } from '@/lib/prisma';
 import fs from 'fs';
 import path from 'path';
 
@@ -62,13 +63,18 @@ export async function POST(request: Request) {
     process.env.DATABASE_URL = finalDatabaseUrl;
     process.env.USE_REAL_PRISMA = String(enableReal);
 
+    // Recarrega o PrismaClient com a nova URL / flag (sem reiniciar o Node)
+    const { active } = await reinitializePrismaClient();
+
     return NextResponse.json({
       success: true,
       connection: testResult,
-      isRealPrismaActive: enableReal,
+      isRealPrismaActive: active,
       message: testResult.success
-        ? 'Configuração salva e conexão com o MySQL estabelecida com sucesso!'
-        : 'Configuração salva, mas o MySQL ainda não aceitou a conexão externa.',
+        ? enableReal
+          ? 'Configuração salva. MySQL ativo — novos cadastros e importações serão gravados no banco.'
+          : 'Configuração salva. MySQL conecta, mas USE_REAL_PRISMA está desligado — dados ficam só no armazenamento local.'
+        : 'Configuração salva, mas o MySQL ainda não aceitou a conexão externa. Cadastros falharão até liberar o acesso.',
     });
   } catch (error: any) {
     console.error('Erro ao salvar configuração do banco:', error);

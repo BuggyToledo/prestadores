@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
+import { formatDatabaseError } from '@/lib/dbError';
 import { Prisma } from '@prisma/client';
 
 // Listar prestadores com filtros avançados
@@ -155,6 +156,32 @@ export async function POST(request: Request) {
       );
     }
 
+    // Garantir que a categoria existe no banco ativo (MySQL ou mock)
+    const category = await prisma.category.findUnique({ where: { id: categoryId } });
+    if (!category) {
+      return NextResponse.json(
+        {
+          error:
+            'Categoria não encontrada no banco. Sincronize as categorias no MySQL (Admin > Banco) ou selecione outra categoria.',
+        },
+        { status: 400 }
+      );
+    }
+
+    let resolvedSubcategoryId: string | null = subcategoryId || null;
+    if (resolvedSubcategoryId) {
+      const subcategory = await prisma.subcategory.findUnique({ where: { id: resolvedSubcategoryId } });
+      if (!subcategory || subcategory.categoryId !== categoryId) {
+        return NextResponse.json(
+          {
+            error:
+              'Subcategoria inválida para a categoria selecionada. Escolha outra especialidade ou deixe em branco.',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Gerar slug único
     let baseSlug = slugify(name);
     let slug = baseSlug;
@@ -186,7 +213,7 @@ export async function POST(request: Request) {
         isFeatured: Boolean(isFeatured),
         isActive: isActive !== undefined ? Boolean(isActive) : true,
         categoryId,
-        subcategoryId: subcategoryId || null,
+        subcategoryId: resolvedSubcategoryId,
       },
       include: {
         category: true,
@@ -197,6 +224,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, provider }, { status: 201 });
   } catch (error) {
     console.error('Erro ao cadastrar prestador:', error);
-    return NextResponse.json({ error: 'Erro ao cadastrar prestador de serviços.' }, { status: 500 });
+    return NextResponse.json(
+      { error: formatDatabaseError(error, 'Erro ao cadastrar prestador de serviços no MySQL.') },
+      { status: 500 }
+    );
   }
 }

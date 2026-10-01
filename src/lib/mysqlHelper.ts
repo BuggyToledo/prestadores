@@ -139,9 +139,9 @@ export async function createTablesInMySql(conn: mysql.Connection): Promise<void>
       phone VARCHAR(191) NULL,
       whatsapp VARCHAR(191) NULL,
       email VARCHAR(191) NULL,
-      website VARCHAR(191) NULL,
-      instagram VARCHAR(191) NULL,
-      address VARCHAR(191) NULL,
+      website TEXT NULL,
+      instagram TEXT NULL,
+      address TEXT NULL,
       neighborhood VARCHAR(191) NULL,
       city VARCHAR(191) NOT NULL,
       state VARCHAR(191) NOT NULL,
@@ -184,6 +184,20 @@ export async function createTablesInMySql(conn: mysql.Connection): Promise<void>
 
   for (const sql of ddlStatements) {
     await conn.query(sql);
+  }
+
+  // Alinha colunas em bancos já existentes (CREATE IF NOT EXISTS não altera schema antigo)
+  const alterStatements = [
+    'ALTER TABLE providers MODIFY COLUMN website TEXT NULL',
+    'ALTER TABLE providers MODIFY COLUMN instagram TEXT NULL',
+    'ALTER TABLE providers MODIFY COLUMN address TEXT NULL',
+  ];
+  for (const sql of alterStatements) {
+    try {
+      await conn.query(sql);
+    } catch {
+      // Ignora se a tabela ainda não existir ou o tipo já estiver correto
+    }
   }
 }
 
@@ -388,9 +402,9 @@ CREATE TABLE IF NOT EXISTS \`providers\` (
   \`phone\` VARCHAR(191) NULL,
   \`whatsapp\` VARCHAR(191) NULL,
   \`email\` VARCHAR(191) NULL,
-  \`website\` VARCHAR(191) NULL,
-  \`instagram\` VARCHAR(191) NULL,
-  \`address\` VARCHAR(191) NULL,
+  \`website\` TEXT NULL,
+  \`instagram\` TEXT NULL,
+  \`address\` TEXT NULL,
   \`neighborhood\` VARCHAR(191) NULL,
   \`city\` VARCHAR(191) NOT NULL,
   \`state\` VARCHAR(191) NOT NULL,

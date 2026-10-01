@@ -66,7 +66,7 @@ export default function AdminDatabasePage() {
           port: String(data.port || prev.port),
           user: data.user || prev.user,
           database: data.database || prev.database,
-          useRealPrisma: data.isRealPrismaActive || false,
+          useRealPrisma: Boolean(data.useRealPrismaEnv ?? data.isRealPrismaActive),
         }));
       } else {
         setErrorMsg(data.error || 'Erro ao consultar status do banco.');
@@ -232,6 +232,16 @@ export default function AdminDatabasePage() {
         </div>
       )}
 
+      {statusData?.warning && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-sm flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold">Configuração incompleta</p>
+            <p className="text-xs leading-relaxed">{statusData.warning}</p>
+          </div>
+        </div>
+      )}
+
       {/* Card de Status da Conexão */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Status do MySQL */}
@@ -276,8 +286,10 @@ export default function AdminDatabasePage() {
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
                 {isConnected
-                  ? `Conexão ativa com ${statusData?.host}:${statusData?.port}. O sistema está pronto para leitura e gravação no banco de dados.`
-                  : 'Os prestadores, categorias e banners estão sendo salvos e persistidos com segurança no disco local (data/database.json). Para conectar diretamente ao servidor MySQL da hospedagem, siga as instruções de liberação abaixo.'}
+                  ? statusData?.isRealPrismaActive
+                    ? `Conexão ativa com ${statusData?.host}:${statusData?.port}. Cadastros e importações estão gravando no MySQL.`
+                    : `MySQL responde em ${statusData?.host}:${statusData?.port}, mas USE_REAL_PRISMA está desligado — ative a opção abaixo e sincronize para gravar no banco.`
+                  : 'Os prestadores, categorias e banners estão sendo salvos no disco local (data/database.json). Para conectar ao MySQL da hospedagem, siga as instruções de liberação abaixo.'}
               </p>
             </div>
 
@@ -521,7 +533,9 @@ export default function AdminDatabasePage() {
                   Ativar Conexão Direta ao MySQL (USE_REAL_PRISMA)
                 </span>
                 <span className="text-[11px] text-slate-500 block">
-                  Ao ativar, o sistema se conecta e grava diretamente no MySQL. Caso ocorra qualquer falha no servidor, o sistema continuará operando com segurança no armazenamento local sem travar o site.
+                  Com esta opção ativa, cadastros, edições e importações gravam direto no MySQL.
+                  Se a conexão falhar, o sistema mostra o erro real (não salva &quot;de mentira&quot; no armazenamento local).
+                  Após ativar, use &quot;Sincronizar Tudo para o MySQL&quot; para enviar categorias e dados locais.
                 </span>
               </div>
             </label>

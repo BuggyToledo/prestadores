@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
+import { formatDatabaseError } from '@/lib/dbError';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -81,6 +82,31 @@ export async function PUT(request: Request, { params }: Params) {
       return NextResponse.json({ error: 'Prestador não encontrado.' }, { status: 404 });
     }
 
+    const category = await prisma.category.findUnique({ where: { id: categoryId } });
+    if (!category) {
+      return NextResponse.json(
+        {
+          error:
+            'Categoria não encontrada no banco. Sincronize as categorias no MySQL antes de atualizar.',
+        },
+        { status: 400 }
+      );
+    }
+
+    let resolvedSubcategoryId: string | null = subcategoryId || null;
+    if (resolvedSubcategoryId) {
+      const subcategory = await prisma.subcategory.findUnique({ where: { id: resolvedSubcategoryId } });
+      if (!subcategory || subcategory.categoryId !== categoryId) {
+        return NextResponse.json(
+          {
+            error:
+              'Subcategoria inválida para a categoria selecionada. Escolha outra especialidade ou deixe em branco.',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Se o nome mudou, atualizar o slug
     let slug = existing.slug;
     if (existing.name !== name) {
@@ -120,7 +146,7 @@ export async function PUT(request: Request, { params }: Params) {
         isFeatured: Boolean(isFeatured),
         isActive: isActive !== undefined ? Boolean(isActive) : true,
         categoryId,
-        subcategoryId: subcategoryId || null,
+        subcategoryId: resolvedSubcategoryId,
       },
       include: {
         category: true,
@@ -131,7 +157,10 @@ export async function PUT(request: Request, { params }: Params) {
     return NextResponse.json({ success: true, provider: updated });
   } catch (error) {
     console.error('Erro ao atualizar prestador:', error);
-    return NextResponse.json({ error: 'Erro ao atualizar prestador.' }, { status: 500 });
+    return NextResponse.json(
+      { error: formatDatabaseError(error, 'Erro ao atualizar prestador no MySQL.') },
+      { status: 500 }
+    );
   }
 }
 
@@ -152,6 +181,9 @@ export async function DELETE(request: Request, { params }: Params) {
     return NextResponse.json({ success: true, message: 'Prestador excluído com sucesso.' });
   } catch (error) {
     console.error('Erro ao excluir prestador:', error);
-    return NextResponse.json({ error: 'Erro ao excluir prestador.' }, { status: 500 });
+    return NextResponse.json(
+      { error: formatDatabaseError(error, 'Erro ao excluir prestador no MySQL.') },
+      { status: 500 }
+    );
   }
 }

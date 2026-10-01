@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { getMockDatabase } from '@/lib/prisma';
+import { getMockDatabase, isRealPrismaEnabled } from '@/lib/prisma';
 import { testMySqlConnection, parseDatabaseUrl } from '@/lib/mysqlHelper';
 
 export async function GET(request: Request) {
@@ -22,14 +22,26 @@ export async function GET(request: Request) {
     // Estatísticas locais
     const localDb = getMockDatabase();
 
+    const useRealFlag = process.env.USE_REAL_PRISMA === 'true';
+    const realPrismaActive = isRealPrismaEnabled();
+
     return NextResponse.json({
       configured: Boolean(dbUrl),
-      databaseUrl: dbUrl ? `${parsedConfig.user}@${parsedConfig.host}:${parsedConfig.port}/${parsedConfig.database}` : '',
+      databaseUrl: dbUrl
+        ? `${parsedConfig.user}@${parsedConfig.host}:${parsedConfig.port}/${parsedConfig.database}`
+        : '',
       host: parsedConfig.host,
       port: parsedConfig.port,
       user: parsedConfig.user,
       database: parsedConfig.database,
-      isRealPrismaActive: process.env.USE_REAL_PRISMA === 'true',
+      isRealPrismaActive: realPrismaActive,
+      useRealPrismaEnv: useRealFlag,
+      warning:
+        useRealFlag && !testResult.success
+          ? 'USE_REAL_PRISMA=true, mas a conexão MySQL falhou. Cadastros e importações vão retornar erro até o MySQL ficar acessível.'
+          : !useRealFlag && testResult.success
+            ? 'MySQL responde, porém USE_REAL_PRISMA não está true. Os dados estão no armazenamento local e NÃO são gravados no MySQL.'
+            : undefined,
       connection: testResult,
       localStats: {
         providersCount: localDb.providers?.length || 0,
