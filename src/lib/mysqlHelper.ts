@@ -45,6 +45,8 @@ export async function testMySqlConnection(configOrUrl: string | MySqlConfig): Pr
   error?: string;
   code?: string;
   clientIp?: string;
+  hostDenied?: string;
+  allowableHostsToAdd?: string[];
 }> {
   const config = typeof configOrUrl === 'string' ? parseDatabaseUrl(configOrUrl) : configOrUrl;
 
@@ -88,6 +90,8 @@ export async function testMySqlConnection(configOrUrl: string | MySqlConfig): Pr
       error: formatted.error,
       code: formatted.code || err.code || 'UNKNOWN_ERROR',
       clientIp: formatted.clientIp,
+      hostDenied: formatted.hostDenied,
+      allowableHostsToAdd: formatted.allowableHostsToAdd,
     };
   }
 }

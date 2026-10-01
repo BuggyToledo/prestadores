@@ -20,9 +20,19 @@ Este projeto usa MySQL na **DreamHost** com o front na **Vercel**.
 1. Acesse [panel.dreamhost.com](https://panel.dreamhost.com/) → **Databases → MySQL Databases**.
 2. Crie o banco (ex.: `catalogo_servicos`).
 3. Crie o usuário (ex.: `prestadores`) com senha forte.
-4. No campo **Hostname** do usuário, use **`%`** (qualquer host).  
-   Sem isso a Vercel recebe: `Access denied for user 'prestadores'@'ec2-....amazonaws.com'`.
+4. Clique no **nome do usuário** → campo **Allowable Hosts**.  
+   O padrão da DreamHost é só `%.dreamhost.com`, e isso **bloqueia a Vercel**.  
+   Deixe uma entrada por linha:
+   ```
+   %.dreamhost.com
+   %.amazonaws.com
+   %
+   ```
+   Clique em **Modify [usuário] now!**.
 5. Anote o **MySQL hostname** (ex.: `mysql.sindicone.com.br`) — **não** use `localhost` na Vercel.
+
+> Sem as linhas `%.amazonaws.com` e `%`, o erro continua:  
+> `Access denied for user 'prestadores'@'ec2-....amazonaws.com'`.
 
 ### Passo B: Formato da URL de Conexão (`DATABASE_URL`)
 ```env

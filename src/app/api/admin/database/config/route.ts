@@ -82,11 +82,23 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+
+      // Senha vazia no formulário NÃO pode apagar a senha já configurada na Vercel
+      let resolvedPassword = typeof password === 'string' ? password : '';
+      if (!resolvedPassword && process.env.DATABASE_URL) {
+        try {
+          const existing = new URL(process.env.DATABASE_URL);
+          resolvedPassword = decodeURIComponent(existing.password || '');
+        } catch {
+          /* ignore */
+        }
+      }
+
       finalDatabaseUrl = buildDatabaseUrl({
         host: host.trim(),
         port: parseInt(port, 10) || 3306,
         user: user.trim(),
-        password: password ?? '',
+        password: resolvedPassword,
         database: database.trim(),
       });
     }

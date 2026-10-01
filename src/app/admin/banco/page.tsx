@@ -334,92 +334,82 @@ export default function AdminDatabasePage() {
               </p>
             </div>
 
-            {/* Caixa explicativa DreamHost (Access denied) */}
+            {/* Caixa explicativa DreamHost Allowable Hosts (Access denied) */}
             {!isConnected && (
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/90 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase tracking-wider">
                   <Key className="w-4 h-4 text-amber-600" />
-                  <span>DreamHost — liberar MySQL remoto (Access denied)</span>
+                  <span>DreamHost — Allowable Hosts (obrigatório)</span>
                 </div>
 
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  A Vercel conecta de um IP da AWS (ex.:{' '}
-                  <code className="bg-slate-100 px-1 rounded text-[11px]">
+                  A DreamHost vem com <code className="bg-slate-100 px-1 rounded">%.dreamhost.com</code> por
+                  padrão — isso <strong>bloqueia a Vercel</strong>, mesmo com senha correta. O host recusado
+                  agora foi:{' '}
+                  <code className="bg-rose-50 text-rose-800 px-1 rounded text-[11px] break-all">
                     {detectedIp || 'ec2-....amazonaws.com'}
                   </code>
-                  ). A DreamHost só aceita se o usuário MySQL permitir esse host.
                 </p>
 
                 <ol className="text-xs text-slate-700 space-y-2.5 list-decimal list-inside leading-relaxed">
                   <li>
-                    Acesse o painel{' '}
+                    Abra{' '}
                     <a
-                      href="https://panel.dreamhost.com/"
+                      href="https://panel.dreamhost.com/index.cgi?tree=support.dashboard&amp;"
                       target="_blank"
                       rel="noreferrer"
                       className="text-amber-800 font-bold underline underline-offset-2"
                     >
                       panel.dreamhost.com
-                    </a>
-                    .
+                    </a>{' '}
+                    → <strong>Databases → MySQL Databases</strong>.
                   </li>
                   <li>
-                    Vá em <strong>Databases → MySQL Databases</strong>.
+                    Clique no <strong>nome do usuário</strong> (ex.: <code className="bg-slate-100 px-1 rounded">prestadores</code>),
+                    não só no nome do banco.
                   </li>
                   <li>
-                    Anote o <strong>Hostname</strong> do banco (geralmente{' '}
-                    <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">mysql.seudominio.com</code>
-                    ) — use esse valor no campo Host abaixo, nunca <code>localhost</code>.
+                    No campo <strong>Allowable Hosts</strong>, cole exatamente estas 3 linhas (uma por linha):
+                    <div className="mt-2 bg-slate-900 text-emerald-300 font-mono text-[11px] rounded-xl p-3 space-y-0.5">
+                      <div>%.dreamhost.com</div>
+                      <div>%.amazonaws.com</div>
+                      <div>%</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopy('%.dreamhost.com\n%.amazonaws.com\n%', 'wildcard')
+                      }
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs cursor-pointer shadow-xs"
+                    >
+                      {copiedWildcard ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedWildcard ? 'Copiado!' : 'Copiar as 3 linhas'}</span>
+                    </button>
                   </li>
                   <li>
-                    No usuário MySQL (ex.: <code className="bg-slate-100 px-1 rounded">prestadores</code>),
-                    edite ou recrie o usuário com Hostname ={' '}
-                    <span className="inline-flex items-center gap-2 align-middle ml-1">
-                      <code className="bg-slate-100 text-slate-900 px-2.5 py-1 rounded-lg font-mono font-bold text-sm border border-slate-200">
-                        %
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy('%', 'wildcard')}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs cursor-pointer shadow-xs transition-colors"
-                      >
-                        {copiedWildcard ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copiedWildcard ? 'Copiado!' : 'Copiar %'}</span>
-                      </button>
-                    </span>
-                    <span className="block mt-1 text-slate-500 pl-5">
-                      O <strong>%</strong> libera qualquer host (necessário porque a Vercel muda de IP).
-                    </span>
-                  </li>
-                  {detectedIp && (
-                    <li>
-                      Host que a DreamHost acabou de recusar (para referência):
-                      <div className="mt-1 flex items-center gap-2 flex-wrap">
-                        <code className="bg-slate-100 text-slate-900 px-2.5 py-1 rounded font-mono font-bold text-[11px] border border-slate-200 break-all">
-                          {detectedIp}
-                        </code>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(detectedIp, 'ip')}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] cursor-pointer"
-                        >
-                          {copiedIp ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                          <span>{copiedIp ? 'Copiado' : 'Copiar'}</span>
-                        </button>
-                      </div>
-                    </li>
-                  )}
-                  <li>
-                    Confirme usuário e senha no painel DreamHost. Se a senha tiver caracteres especiais
-                    (<code>@ # % &</code>), na Vercel use a senha URL-encoded em <code>DATABASE_URL</code>.
+                    Clique em <strong>Modify [usuário] now!</strong> e aguarde ~1 minuto.
                   </li>
                   <li>
-                    Na Vercel → Environment Variables, salve{' '}
-                    <code className="bg-slate-100 px-1 rounded">DATABASE_URL</code> e{' '}
-                    <code className="bg-slate-100 px-1 rounded">USE_REAL_PRISMA=true</code>, faça{' '}
-                    <strong>Redeploy</strong>, depois volte aqui e clique em <strong>Testar Conexão</strong>.
+                    Confirme o hostname MySQL (ex.: <code className="bg-slate-100 px-1 rounded">mysql.sindicone.com.br</code>)
+                    na Vercel em <code className="bg-slate-100 px-1 rounded">DATABASE_URL</code> +{' '}
+                    <code className="bg-slate-100 px-1 rounded">USE_REAL_PRISMA=true</code>, faça Redeploy e
+                    clique em <strong>Testar Conexão</strong>.
                   </li>
                 </ol>
+
+                {detectedIp && (
+                  <p className="text-[11px] text-slate-500 pt-1 border-t border-amber-100">
+                    Host AWS recusado (opcional adicionar também):{' '}
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(detectedIp, 'ip')}
+                      className="font-mono text-slate-800 underline cursor-pointer"
+                    >
+                      {detectedIp}
+                    </button>
+                    {copiedIp ? ' ✓' : ''}
+                  </p>
+                )}
               </div>
             )}
           </div>

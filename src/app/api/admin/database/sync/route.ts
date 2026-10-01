@@ -45,6 +45,7 @@ export async function POST(request: Request) {
           clientIp: formatted.clientIp,
           hostDenied: formatted.hostDenied,
           providerHint: formatted.providerHint,
+          allowableHostsToAdd: formatted.allowableHostsToAdd,
         },
         { status: 500 }
       );
