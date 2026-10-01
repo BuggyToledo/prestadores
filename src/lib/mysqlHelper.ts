@@ -45,6 +45,8 @@ export async function testMySqlConnection(configOrUrl: string | MySqlConfig): Pr
   error?: string;
   code?: string;
   clientIp?: string;
+  hostDenied?: string;
+  allowableHostsToAdd?: string[];
 }> {
   const config = typeof configOrUrl === 'string' ? parseDatabaseUrl(configOrUrl) : configOrUrl;
 
@@ -80,17 +82,16 @@ export async function testMySqlConnection(configOrUrl: string | MySqlConfig): Pr
       } catch {}
     }
 
-    let clientIp: string | undefined;
-    const ipMatch = err.message?.match(/@'([^']+)'/);
-    if (ipMatch) {
-      clientIp = ipMatch[1];
-    }
+    const { formatMySqlConnectionError } = await import('./mysqlConnectionError');
+    const formatted = formatMySqlConnectionError(err);
 
     return {
       success: false,
-      error: err.message || 'Falha ao conectar com o MySQL',
-      code: err.code || 'UNKNOWN_ERROR',
-      clientIp,
+      error: formatted.error,
+      code: formatted.code || err.code || 'UNKNOWN_ERROR',
+      clientIp: formatted.clientIp,
+      hostDenied: formatted.hostDenied,
+      allowableHostsToAdd: formatted.allowableHostsToAdd,
     };
   }
 }
@@ -139,9 +140,9 @@ export async function createTablesInMySql(conn: mysql.Connection): Promise<void>
       phone VARCHAR(191) NULL,
       whatsapp VARCHAR(191) NULL,
       email VARCHAR(191) NULL,
-      website VARCHAR(191) NULL,
-      instagram VARCHAR(191) NULL,
-      address VARCHAR(191) NULL,
+      website TEXT NULL,
+      instagram TEXT NULL,
+      address TEXT NULL,
       neighborhood VARCHAR(191) NULL,
       city VARCHAR(191) NOT NULL,
       state VARCHAR(191) NOT NULL,
@@ -185,6 +186,20 @@ export async function createTablesInMySql(conn: mysql.Connection): Promise<void>
   for (const sql of ddlStatements) {
     await conn.query(sql);
   }
+
+  // Alinha colunas em bancos já existentes (CREATE IF NOT EXISTS não altera schema antigo)
+  const alterStatements = [
+    'ALTER TABLE providers MODIFY COLUMN website TEXT NULL',
+    'ALTER TABLE providers MODIFY COLUMN instagram TEXT NULL',
+    'ALTER TABLE providers MODIFY COLUMN address TEXT NULL',
+  ];
+  for (const sql of alterStatements) {
+    try {
+      await conn.query(sql);
+    } catch {
+      // Ignora se a tabela ainda não existir ou o tipo já estiver correto
+    }
+  }
 }
 
 export async function syncDatabaseToMySql(conn: mysql.Connection, db: MockDatabase): Promise<{
@@ -193,38 +208,97 @@ export async function syncDatabaseToMySql(conn: mysql.Connection, db: MockDataba
   subcategoriesSynced: number;
   providersSynced: number;
   bannersSynced: number;
+  skippedSubcategories: number;
+  skippedProviders: number;
 }> {
   // 1. Criar tabelas se não existirem
   await createTablesInMySql(conn);
 
-  // 2. Sincronizar Usuários
-  let usersSynced = 0;
-  for (const u of db.users) {
-    await conn.query(
-      `INSERT INTO users (id, name, email, passwordHash, role, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE name=VALUES(name), passwordHash=VALUES(passwordHash), role=VALUES(role), updatedAt=VALUES(updatedAt)`,
-      [u.id, u.name, u.email, u.passwordHash, u.role, u.createdAt, u.updatedAt]
-    );
-    usersSynced++;
+  // Garante as 12 categorias padrão e limpa órfãos no mock antes de enviar
+  try {
+    const { ensureDefaultCategories } = await import('./prisma');
+    ensureDefaultCategories(db);
+  } catch {
+    /* mock pode já estar ok */
   }
 
-  // 3. Sincronizar Categorias
-  let categoriesSynced = 0;
-  for (const c of db.categories) {
-    await conn.query(
-      `INSERT INTO categories (id, name, slug, description, icon, \`order\`, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE name=VALUES(name), slug=VALUES(slug), description=VALUES(description), icon=VALUES(icon), \`order\`=VALUES(\`order\`), updatedAt=VALUES(updatedAt)`,
-      [c.id, c.name, c.slug, c.description, c.icon, c.order, c.createdAt, c.updatedAt]
-    );
-    categoriesSynced++;
-  }
+  const validCategoryIds = new Set((db.categories || []).map((c) => c.id));
+  const validSubcategoryIds = new Set(
+    (db.subcategories || []).filter((s) => validCategoryIds.has(s.categoryId)).map((s) => s.id)
+  );
 
-  // 4. Sincronizar Subcategorias
-  let subcategoriesSynced = 0;
-  if (db.subcategories && db.subcategories.length > 0) {
-    for (const s of db.subcategories) {
+  // Desliga FKs só durante a carga (evita ordem/legado quebrando o sync)
+  await conn.query('SET FOREIGN_KEY_CHECKS = 0');
+
+  try {
+    // 2. Sincronizar Usuários
+    let usersSynced = 0;
+    for (const u of db.users) {
+      await conn.query(
+        `INSERT INTO users (id, name, email, passwordHash, role, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE name=VALUES(name), passwordHash=VALUES(passwordHash), role=VALUES(role), updatedAt=VALUES(updatedAt)`,
+        [u.id, u.name, u.email, u.passwordHash, u.role, u.createdAt, u.updatedAt]
+      );
+      usersSynced++;
+    }
+
+    // 3. Sincronizar Categorias (resolve conflito de slug com ID diferente)
+    let categoriesSynced = 0;
+    for (const c of db.categories) {
+      const [bySlug] = await conn.query<any[]>(
+        'SELECT id FROM categories WHERE slug = ? LIMIT 1',
+        [c.slug]
+      );
+      const existingSlugId = bySlug?.[0]?.id as string | undefined;
+
+      if (existingSlugId && existingSlugId !== c.id) {
+        // Slug já existe com outro id (ex.: UUID antigo do seed) → remapeia filhos e remove o antigo
+        await conn.query('UPDATE subcategories SET categoryId = ? WHERE categoryId = ?', [
+          c.id,
+          existingSlugId,
+        ]);
+        await conn.query('UPDATE providers SET categoryId = ? WHERE categoryId = ?', [
+          c.id,
+          existingSlugId,
+        ]);
+        await conn.query('DELETE FROM categories WHERE id = ?', [existingSlugId]);
+      }
+
+      const [byName] = await conn.query<any[]>(
+        'SELECT id FROM categories WHERE name = ? AND id <> ? LIMIT 1',
+        [c.name, c.id]
+      );
+      const existingNameId = byName?.[0]?.id as string | undefined;
+      if (existingNameId && existingNameId !== c.id && existingNameId !== existingSlugId) {
+        await conn.query('UPDATE subcategories SET categoryId = ? WHERE categoryId = ?', [
+          c.id,
+          existingNameId,
+        ]);
+        await conn.query('UPDATE providers SET categoryId = ? WHERE categoryId = ?', [
+          c.id,
+          existingNameId,
+        ]);
+        await conn.query('DELETE FROM categories WHERE id = ?', [existingNameId]);
+      }
+
+      await conn.query(
+        `INSERT INTO categories (id, name, slug, description, icon, \`order\`, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE name=VALUES(name), slug=VALUES(slug), description=VALUES(description), icon=VALUES(icon), \`order\`=VALUES(\`order\`), updatedAt=VALUES(updatedAt)`,
+        [c.id, c.name, c.slug, c.description, c.icon, c.order, c.createdAt, c.updatedAt]
+      );
+      categoriesSynced++;
+    }
+
+    // 4. Sincronizar Subcategorias — só as com categoryId válido
+    let subcategoriesSynced = 0;
+    let skippedSubcategories = 0;
+    for (const s of db.subcategories || []) {
+      if (!validCategoryIds.has(s.categoryId)) {
+        skippedSubcategories++;
+        continue;
+      }
       await conn.query(
         `INSERT INTO subcategories (id, name, slug, description, \`order\`, categoryId, createdAt, updatedAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -233,95 +307,130 @@ export async function syncDatabaseToMySql(conn: mysql.Connection, db: MockDataba
       );
       subcategoriesSynced++;
     }
-  }
 
-  // 5. Sincronizar Prestadores
-  let providersSynced = 0;
-  for (const p of db.providers) {
+    // Remove no MySQL subcategorias órfãs (categoryId inexistente)
     await conn.query(
-      `INSERT INTO providers (
-        id, name, slug, cnpj, phone, whatsapp, email, website, instagram,
-        address, neighborhood, city, state, zipCode, description, services,
-        logoUrl, coverUrl, isFeatured, isActive, viewsCount, categoryId, subcategoryId,
-        createdAt, updatedAt
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-        name=VALUES(name), slug=VALUES(slug), cnpj=VALUES(cnpj), phone=VALUES(phone),
-        whatsapp=VALUES(whatsapp), email=VALUES(email), website=VALUES(website),
-        instagram=VALUES(instagram), address=VALUES(address), neighborhood=VALUES(neighborhood),
-        city=VALUES(city), state=VALUES(state), zipCode=VALUES(zipCode),
-        description=VALUES(description), services=VALUES(services), logoUrl=VALUES(logoUrl),
-        coverUrl=VALUES(coverUrl), isFeatured=VALUES(isFeatured), isActive=VALUES(isActive),
-        viewsCount=VALUES(viewsCount), categoryId=VALUES(categoryId), subcategoryId=VALUES(subcategoryId),
-        updatedAt=VALUES(updatedAt)`,
-      [
-        p.id,
-        p.name,
-        p.slug,
-        p.cnpj,
-        p.phone,
-        p.whatsapp,
-        p.email,
-        p.website,
-        p.instagram,
-        p.address,
-        p.neighborhood,
-        p.city,
-        p.state,
-        p.zipCode,
-        p.description,
-        p.services,
-        p.logoUrl,
-        p.coverUrl,
-        p.isFeatured ? 1 : 0,
-        p.isActive ? 1 : 0,
-        p.viewsCount || 0,
-        p.categoryId,
-        p.subcategoryId || null,
-        p.createdAt,
-        p.updatedAt,
-      ]
+      `DELETE FROM subcategories
+       WHERE categoryId NOT IN (SELECT id FROM (SELECT id FROM categories) AS valid_cats)`
     );
-    providersSynced++;
-  }
 
-  // 6. Sincronizar Banners
-  let bannersSynced = 0;
-  if (db.banners && db.banners.length > 0) {
-    for (const b of db.banners) {
+    // 5. Sincronizar Prestadores
+    let providersSynced = 0;
+    let skippedProviders = 0;
+    for (const p of db.providers) {
+      if (!validCategoryIds.has(p.categoryId)) {
+        skippedProviders++;
+        continue;
+      }
+      const subcategoryId =
+        p.subcategoryId && validSubcategoryIds.has(p.subcategoryId) ? p.subcategoryId : null;
+
       await conn.query(
-        `INSERT INTO banners (id, title, imageUrl, linkUrl, target, position, isActive, \`order\`, clicksCount, viewsCount, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO providers (
+          id, name, slug, cnpj, phone, whatsapp, email, website, instagram,
+          address, neighborhood, city, state, zipCode, description, services,
+          logoUrl, coverUrl, isFeatured, isActive, viewsCount, categoryId, subcategoryId,
+          createdAt, updatedAt
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
-          title=VALUES(title), imageUrl=VALUES(imageUrl), linkUrl=VALUES(linkUrl), target=VALUES(target),
-          position=VALUES(position), isActive=VALUES(isActive), \`order\`=VALUES(\`order\`),
-          clicksCount=VALUES(clicksCount), viewsCount=VALUES(viewsCount), updatedAt=VALUES(updatedAt)`,
+          name=VALUES(name), slug=VALUES(slug), cnpj=VALUES(cnpj), phone=VALUES(phone),
+          whatsapp=VALUES(whatsapp), email=VALUES(email), website=VALUES(website),
+          instagram=VALUES(instagram), address=VALUES(address), neighborhood=VALUES(neighborhood),
+          city=VALUES(city), state=VALUES(state), zipCode=VALUES(zipCode),
+          description=VALUES(description), services=VALUES(services), logoUrl=VALUES(logoUrl),
+          coverUrl=VALUES(coverUrl), isFeatured=VALUES(isFeatured), isActive=VALUES(isActive),
+          viewsCount=VALUES(viewsCount), categoryId=VALUES(categoryId), subcategoryId=VALUES(subcategoryId),
+          updatedAt=VALUES(updatedAt)`,
         [
-          b.id,
-          b.title,
-          b.imageUrl,
-          b.linkUrl,
-          b.target || '_blank',
-          b.position || 'HERO_TOP',
-          b.isActive ? 1 : 0,
-          b.order || 0,
-          b.clicksCount || 0,
-          b.viewsCount || 0,
-          b.createdAt,
-          b.updatedAt,
+          p.id,
+          p.name,
+          p.slug,
+          p.cnpj,
+          p.phone,
+          p.whatsapp,
+          p.email,
+          p.website,
+          p.instagram,
+          p.address,
+          p.neighborhood,
+          p.city,
+          p.state,
+          p.zipCode,
+          p.description,
+          p.services,
+          p.logoUrl,
+          p.coverUrl,
+          p.isFeatured ? 1 : 0,
+          p.isActive ? 1 : 0,
+          p.viewsCount || 0,
+          p.categoryId,
+          subcategoryId,
+          p.createdAt,
+          p.updatedAt,
         ]
       );
-      bannersSynced++;
+      providersSynced++;
     }
-  }
 
-  return {
-    usersSynced,
-    categoriesSynced,
-    subcategoriesSynced,
-    providersSynced,
-    bannersSynced,
-  };
+    // Prestadores no MySQL apontando para categoria inexistente → categoria padrão (primeira)
+    const fallbackCategoryId = db.categories[0]?.id;
+    if (fallbackCategoryId) {
+      await conn.query(
+        `UPDATE providers
+         SET categoryId = ?, subcategoryId = NULL
+         WHERE categoryId NOT IN (SELECT id FROM (SELECT id FROM categories) AS valid_cats)`,
+        [fallbackCategoryId]
+      );
+    }
+    await conn.query(
+      `UPDATE providers
+       SET subcategoryId = NULL
+       WHERE subcategoryId IS NOT NULL
+         AND subcategoryId NOT IN (SELECT id FROM (SELECT id FROM subcategories) AS valid_subs)`
+    );
+
+    // 6. Sincronizar Banners
+    let bannersSynced = 0;
+    if (db.banners && db.banners.length > 0) {
+      for (const b of db.banners) {
+        await conn.query(
+          `INSERT INTO banners (id, title, imageUrl, linkUrl, target, position, isActive, \`order\`, clicksCount, viewsCount, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+            title=VALUES(title), imageUrl=VALUES(imageUrl), linkUrl=VALUES(linkUrl), target=VALUES(target),
+            position=VALUES(position), isActive=VALUES(isActive), \`order\`=VALUES(\`order\`),
+            clicksCount=VALUES(clicksCount), viewsCount=VALUES(viewsCount), updatedAt=VALUES(updatedAt)`,
+          [
+            b.id,
+            b.title,
+            b.imageUrl,
+            b.linkUrl,
+            b.target || '_blank',
+            b.position || 'HERO_TOP',
+            b.isActive ? 1 : 0,
+            b.order || 0,
+            b.clicksCount || 0,
+            b.viewsCount || 0,
+            b.createdAt,
+            b.updatedAt,
+          ]
+        );
+        bannersSynced++;
+      }
+    }
+
+    return {
+      usersSynced,
+      categoriesSynced,
+      subcategoriesSynced,
+      providersSynced,
+      bannersSynced,
+      skippedSubcategories,
+      skippedProviders,
+    };
+  } finally {
+    await conn.query('SET FOREIGN_KEY_CHECKS = 1');
+  }
 }
 
 export function generateSqlDump(db: MockDatabase): string {
@@ -388,9 +497,9 @@ CREATE TABLE IF NOT EXISTS \`providers\` (
   \`phone\` VARCHAR(191) NULL,
   \`whatsapp\` VARCHAR(191) NULL,
   \`email\` VARCHAR(191) NULL,
-  \`website\` VARCHAR(191) NULL,
-  \`instagram\` VARCHAR(191) NULL,
-  \`address\` VARCHAR(191) NULL,
+  \`website\` TEXT NULL,
+  \`instagram\` TEXT NULL,
+  \`address\` TEXT NULL,
   \`neighborhood\` VARCHAR(191) NULL,
   \`city\` VARCHAR(191) NOT NULL,
   \`state\` VARCHAR(191) NOT NULL,
