@@ -12,188 +12,127 @@
   ],
   "categories": [
     {
-      "id": "cat_eletricistas",
-      "name": "Eletricistas",
-      "slug": "eletricistas",
-      "description": "Instalação elétrica, reparos em disjuntores, fiação, iluminação residencial e industrial.",
-      "icon": "Zap",
+      "id": "cat_gestao_condominial",
+      "name": "Gestão Condominial e Imobiliária",
+      "slug": "gestao-condominial-e-imobiliaria",
+      "description": "Administradoras, síndicos profissionais, consultoria condominial, avaliação e gestão imobiliária.",
+      "icon": "Building2",
       "order": 1,
       "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "updatedAt": "2026-10-01T10:28:54.916Z"
     },
     {
-      "id": "cat_encanadores",
-      "name": "Encanadores e Desentupidoras",
-      "slug": "encanadores",
-      "description": "Conserto de vazamentos, desentupimento, instalação de louças e tubulações hidráulicas.",
-      "icon": "Wrench",
+      "id": "cat_juridico_contabil",
+      "name": "Jurídico, Contábil e Seguros",
+      "slug": "juridico-contabil-e-seguros",
+      "description": "Advocacia condominial, contabilidade, auditoria, seguros prediais e assessoria jurídica.",
+      "icon": "Scale",
       "order": 2,
       "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "updatedAt": "2026-10-01T10:28:54.917Z"
     },
     {
-      "id": "cat_pintores",
-      "name": "Pintores e Acabamentos",
-      "slug": "pintores",
-      "description": "Pintura residencial, predial, texturas, massa corrida, impermeabilização e verniz.",
-      "icon": "Paintbrush",
+      "id": "cat_obras_engenharia",
+      "name": "Obras, Engenharia e Laudos",
+      "slug": "obras-engenharia-e-laudos",
+      "description": "Engenharia civil, reformas, laudos técnicos, perícias, projetos e acompanhamento de obras.",
+      "icon": "HardHat",
       "order": 3,
       "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "updatedAt": "2026-10-01T10:28:54.917Z"
     },
     {
-      "id": "cat_ar_condicionado",
-      "name": "Ar-Condicionado e Refrigeração",
-      "slug": "ar-condicionado",
-      "description": "Instalação, limpeza, manutenção preventiva e recarga de gás para ar-condicionado.",
-      "icon": "Wind",
+      "id": "cat_manutencao_predial",
+      "name": "Manutenção Predial e Instalações",
+      "slug": "manutencao-predial-e-instalacoes",
+      "description": "Elétrica, hidráulica, elevadores, ar-condicionado, portões, bombas e manutenção geral predial.",
+      "icon": "Wrench",
       "order": 4,
       "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "updatedAt": "2026-10-01T10:28:54.917Z"
     },
     {
-      "id": "cat_chaveiros",
-      "name": "Chaveiros 24 Horas",
-      "slug": "chaveiros",
-      "description": "Abertura de portas, cópia de chaves codificadas, troca de fechaduras residenciais e automotivas.",
-      "icon": "Key",
+      "id": "cat_seguranca_incendio",
+      "name": "Segurança e Prevenção de Incêndio",
+      "slug": "seguranca-e-prevencao-de-incendio",
+      "description": "Brigada, extintores, SPDA, CFTV, portaria, controle de acesso e sistemas de alarme.",
+      "icon": "Flame",
       "order": 5,
       "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "updatedAt": "2026-10-01T10:28:54.917Z"
     },
     {
-      "id": "cat_marcenaria",
-      "name": "Marcenaria e Móveis Planejados",
-      "slug": "marcenaria",
-      "description": "Fabricação e conserto de móveis sob medida, restauração e montagem de móveis.",
-      "icon": "Hammer",
+      "id": "cat_limpeza_pragas",
+      "name": "Limpeza, Conservação e Controle de Pragas",
+      "slug": "limpeza-conservacao-e-controle-de-pragas",
+      "description": "Limpeza predial, conservação de áreas comuns, dedetização, desratização e higienização.",
+      "icon": "Sparkles",
       "order": 6,
       "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "updatedAt": "2026-10-01T10:28:54.917Z"
     },
     {
-      "id": "cat_mecanica",
-      "name": "Mecânica e Auto Center",
-      "slug": "mecanica",
-      "description": "Revisão mecânica, suspensão, freios, injeção eletrônica, alinhamento e balanceamento.",
-      "icon": "Car",
+      "id": "cat_residuos_ambiente",
+      "name": "Resíduos, Meio Ambiente e Sustentabilidade",
+      "slug": "residuos-meio-ambiente-e-sustentabilidade",
+      "description": "Coleta seletiva, gestão de resíduos, reciclagem, eficiência energética e práticas sustentáveis.",
+      "icon": "Leaf",
       "order": 7,
       "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "updatedAt": "2026-10-01T10:28:54.917Z"
     },
     {
-      "id": "cat_limpeza",
-      "name": "Limpeza e Diaristas",
-      "slug": "limpeza",
-      "description": "Serviços de faxina residencial, limpeza pós-obra, higienização de estofados e tapetes.",
-      "icon": "Sparkles",
+      "id": "cat_materiais_locacoes",
+      "name": "Materiais, Equipamentos e Locações",
+      "slug": "materiais-equipamentos-e-locacoes",
+      "description": "Fornecimento de materiais de construção, equipamentos e locação para condomínios e obras.",
+      "icon": "Package",
       "order": 8,
       "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "updatedAt": "2026-10-01T10:28:54.917Z"
+    },
+    {
+      "id": "cat_tecnologia_comunicacao",
+      "name": "Tecnologia e Comunicação",
+      "slug": "tecnologia-e-comunicacao",
+      "description": "Automação, internet, interfonia, software de gestão condominial e infraestrutura de TI.",
+      "icon": "Wifi",
+      "order": 9,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2026-10-01T10:28:54.917Z"
+    },
+    {
+      "id": "cat_servicos_operacionais",
+      "name": "Serviços Operacionais e Mão de Obra",
+      "slug": "servicos-operacionais-e-mao-de-obra",
+      "description": "Zeladoria, jardinagem, mão de obra especializada, serviços gerais e apoio operacional.",
+      "icon": "Users",
+      "order": 10,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2026-10-01T10:28:54.917Z"
+    },
+    {
+      "id": "cat_saude_bem_estar",
+      "name": "Saúde, Bem-estar e Assistência Social",
+      "slug": "saude-bem-estar-e-assistencia-social",
+      "description": "Saúde ocupacional, bem-estar, assistência social e serviços de apoio à comunidade condominial.",
+      "icon": "HeartPulse",
+      "order": 11,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2026-10-01T10:28:54.917Z"
+    },
+    {
+      "id": "cat_orgaos_emergencias",
+      "name": "Órgãos Públicos, Emergências e Utilidades",
+      "slug": "orgaos-publicos-emergencias-e-utilidades",
+      "description": "Contatos úteis de órgãos públicos, emergências, concessionárias e serviços de utilidade pública.",
+      "icon": "Landmark",
+      "order": 12,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2026-10-01T10:28:54.917Z"
     }
   ],
-  "subcategories": [
-    {
-      "id": "sub_elet_1",
-      "name": "Instalação e Reparos",
-      "slug": "elet-instalacao-reparos",
-      "description": null,
-      "order": 1,
-      "categoryId": "cat_eletricistas",
-      "createdAt": "2026-10-01T00:00:16.320Z",
-      "updatedAt": "2026-10-01T00:00:16.320Z"
-    },
-    {
-      "id": "sub_elet_2",
-      "name": "Laudos e SPDA",
-      "slug": "elet-laudos-spda",
-      "description": null,
-      "order": 2,
-      "categoryId": "cat_eletricistas",
-      "createdAt": "2026-10-01T00:00:16.320Z",
-      "updatedAt": "2026-10-01T00:00:16.320Z"
-    },
-    {
-      "id": "sub_elet_3",
-      "name": "Padrão de Entrada",
-      "slug": "elet-padrao-entrada",
-      "description": null,
-      "order": 3,
-      "categoryId": "cat_eletricistas",
-      "createdAt": "2026-10-01T00:00:16.320Z",
-      "updatedAt": "2026-10-01T00:00:16.320Z"
-    },
-    {
-      "id": "sub_enc_1",
-      "name": "Caça-Vazamentos",
-      "slug": "enc-caca-vazamentos",
-      "description": null,
-      "order": 1,
-      "categoryId": "cat_encanadores",
-      "createdAt": "2026-10-01T00:00:16.320Z",
-      "updatedAt": "2026-10-01T00:00:16.320Z"
-    },
-    {
-      "id": "sub_enc_2",
-      "name": "Desentupimentos",
-      "slug": "enc-desentupimentos",
-      "description": null,
-      "order": 2,
-      "categoryId": "cat_encanadores",
-      "createdAt": "2026-10-01T00:00:16.320Z",
-      "updatedAt": "2026-10-01T00:00:16.320Z"
-    },
-    {
-      "id": "sub_enc_3",
-      "name": "Prumadas e Tubulações",
-      "slug": "enc-prumadas-tubulacoes",
-      "description": null,
-      "order": 3,
-      "categoryId": "cat_encanadores",
-      "createdAt": "2026-10-01T00:00:16.320Z",
-      "updatedAt": "2026-10-01T00:00:16.320Z"
-    },
-    {
-      "id": "sub_pint_1",
-      "name": "Pintura Residencial",
-      "slug": "pint-residencial",
-      "description": null,
-      "order": 1,
-      "categoryId": "cat_pintores",
-      "createdAt": "2026-10-01T00:00:16.320Z",
-      "updatedAt": "2026-10-01T00:00:16.320Z"
-    },
-    {
-      "id": "sub_pint_2",
-      "name": "Restauração de Fachadas",
-      "slug": "pint-fachadas",
-      "description": null,
-      "order": 2,
-      "categoryId": "cat_pintores",
-      "createdAt": "2026-10-01T00:00:16.320Z",
-      "updatedAt": "2026-10-01T00:00:16.320Z"
-    },
-    {
-      "id": "sub_ar_1",
-      "name": "Instalação de Split",
-      "slug": "ar-instalacao-split",
-      "description": null,
-      "order": 1,
-      "categoryId": "cat_ar-condicionado",
-      "createdAt": "2026-10-01T00:00:16.320Z",
-      "updatedAt": "2026-10-01T00:00:16.320Z"
-    },
-    {
-      "id": "sub_ar_2",
-      "name": "Higienização e PMOC",
-      "slug": "ar-higienizacao-pmoc",
-      "description": null,
-      "order": 2,
-      "categoryId": "cat_ar-condicionado",
-      "createdAt": "2026-10-01T00:00:16.320Z",
-      "updatedAt": "2026-10-01T00:00:16.320Z"
-    }
-  ],
+  "subcategories": [],
   "providers": [
     {
       "id": "prov_eletrosilva",
@@ -217,9 +156,10 @@
       "isFeatured": true,
       "isActive": true,
       "viewsCount": 142,
-      "categoryId": "cat_eletricistas",
+      "categoryId": "cat_manutencao_predial",
       "createdAt": "2024-01-10T10:00:00.000Z",
-      "updatedAt": "2024-01-10T10:00:00.000Z"
+      "updatedAt": "2024-01-10T10:00:00.000Z",
+      "subcategoryId": null
     },
     {
       "id": "prov_sos_agua_limpa",
@@ -243,9 +183,10 @@
       "isFeatured": true,
       "isActive": true,
       "viewsCount": 98,
-      "categoryId": "cat_encanadores",
+      "categoryId": "cat_manutencao_predial",
       "createdAt": "2024-01-12T11:00:00.000Z",
-      "updatedAt": "2024-01-12T11:00:00.000Z"
+      "updatedAt": "2024-01-12T11:00:00.000Z",
+      "subcategoryId": null
     },
     {
       "id": "prov_arte_cor",
@@ -269,9 +210,10 @@
       "isFeatured": false,
       "isActive": true,
       "viewsCount": 65,
-      "categoryId": "cat_pintores",
+      "categoryId": "cat_obras_engenharia",
       "createdAt": "2024-01-15T09:30:00.000Z",
-      "updatedAt": "2024-01-15T09:30:00.000Z"
+      "updatedAt": "2024-01-15T09:30:00.000Z",
+      "subcategoryId": null
     },
     {
       "id": "prov_climafrio",
@@ -295,9 +237,10 @@
       "isFeatured": true,
       "isActive": true,
       "viewsCount": 112,
-      "categoryId": "cat_ar_condicionado",
+      "categoryId": "cat_manutencao_predial",
       "createdAt": "2024-01-18T14:15:00.000Z",
-      "updatedAt": "2024-01-18T14:15:00.000Z"
+      "updatedAt": "2024-01-18T14:15:00.000Z",
+      "subcategoryId": null
     },
     {
       "id": "prov_chaveiro_express",
@@ -321,9 +264,10 @@
       "isFeatured": false,
       "isActive": true,
       "viewsCount": 77,
-      "categoryId": "cat_chaveiros",
+      "categoryId": "cat_seguranca_incendio",
       "createdAt": "2024-01-20T16:00:00.000Z",
-      "updatedAt": "2024-01-20T16:00:00.000Z"
+      "updatedAt": "2024-01-20T16:00:00.000Z",
+      "subcategoryId": null
     },
     {
       "id": "prov_studio_nobre",
@@ -347,9 +291,10 @@
       "isFeatured": true,
       "isActive": true,
       "viewsCount": 89,
-      "categoryId": "cat_marcenaria",
+      "categoryId": "cat_obras_engenharia",
       "createdAt": "2024-01-22T08:00:00.000Z",
-      "updatedAt": "2024-01-22T08:00:00.000Z"
+      "updatedAt": "2024-01-22T08:00:00.000Z",
+      "subcategoryId": null
     },
     {
       "id": "prov_cleanmaster",
@@ -373,9 +318,10 @@
       "isFeatured": false,
       "isActive": true,
       "viewsCount": 54,
-      "categoryId": "cat_limpeza",
+      "categoryId": "cat_limpeza_pragas",
       "createdAt": "2024-01-25T11:45:00.000Z",
-      "updatedAt": "2024-01-25T11:45:00.000Z"
+      "updatedAt": "2024-01-25T11:45:00.000Z",
+      "subcategoryId": null
     }
   ],
   "banners": [
