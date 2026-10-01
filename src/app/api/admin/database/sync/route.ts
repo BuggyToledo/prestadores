@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { getMockDatabase } from '@/lib/prisma';
+import { ensureDefaultCategories, getMockDatabase, saveDbToDisk } from '@/lib/prisma';
 import { parseDatabaseUrl, syncDatabaseToMySql } from '@/lib/mysqlHelper';
 import { formatMySqlConnectionError } from '@/lib/mysqlConnectionError';
+import { formatDatabaseError } from '@/lib/dbError';
 import mysql from 'mysql2/promise';
 
 export async function POST(request: Request) {
@@ -25,6 +26,11 @@ export async function POST(request: Request) {
 
     const config = parseDatabaseUrl(dbUrl);
     const localDb = getMockDatabase();
+
+    // Alinha as 12 categorias e remove subcategorias órfãs antes de enviar ao MySQL
+    if (ensureDefaultCategories(localDb)) {
+      saveDbToDisk(localDb);
+    }
 
     let connection: mysql.Connection | null = null;
     try {
@@ -55,9 +61,14 @@ export async function POST(request: Request) {
       const stats = await syncDatabaseToMySql(connection, localDb);
       await connection.end();
 
+      const skipHint =
+        stats.skippedSubcategories || stats.skippedProviders
+          ? ` (${stats.skippedSubcategories} subcategoria(s) e ${stats.skippedProviders} prestador(es) ignorados por vínculo inválido)`
+          : '';
+
       return NextResponse.json({
         success: true,
-        message: 'Dados sincronizados com sucesso para o banco de dados MySQL!',
+        message: `Dados sincronizados com sucesso para o MySQL!${skipHint}`,
         stats,
       });
     } catch (syncErr: any) {
@@ -70,6 +81,14 @@ export async function POST(request: Request) {
     }
   } catch (error: any) {
     console.error('Erro ao sincronizar banco:', error);
-    return NextResponse.json({ error: error.message || 'Erro ao sincronizar banco.' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: formatDatabaseError(
+          error,
+          error.message || 'Erro ao sincronizar banco.'
+        ),
+      },
+      { status: 500 }
+    );
   }
 }
