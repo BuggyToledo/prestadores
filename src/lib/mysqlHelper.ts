@@ -80,17 +80,14 @@ export async function testMySqlConnection(configOrUrl: string | MySqlConfig): Pr
       } catch {}
     }
 
-    let clientIp: string | undefined;
-    const ipMatch = err.message?.match(/@'([^']+)'/);
-    if (ipMatch) {
-      clientIp = ipMatch[1];
-    }
+    const { formatMySqlConnectionError } = await import('./mysqlConnectionError');
+    const formatted = formatMySqlConnectionError(err);
 
     return {
       success: false,
-      error: err.message || 'Falha ao conectar com o MySQL',
-      code: err.code || 'UNKNOWN_ERROR',
-      clientIp,
+      error: formatted.error,
+      code: formatted.code || err.code || 'UNKNOWN_ERROR',
+      clientIp: formatted.clientIp,
     };
   }
 }

@@ -41,7 +41,7 @@ export default function AdminDatabasePage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [envHint, setEnvHint] = useState<{ DATABASE_URL?: string; USE_REAL_PRISMA?: string } | null>(null);
 
-  // Formulário de conexão
+  // Formulário de conexão (padrão DreamHost: mysql.seudominio.com)
   const [formData, setFormData] = useState({
     host: 'mysql.sindicone.com.br',
     port: '3306',
@@ -49,7 +49,7 @@ export default function AdminDatabasePage() {
     password: '',
     database: 'catalogo_servicos',
     databaseUrl: '',
-    useRealPrisma: false,
+    useRealPrisma: true,
   });
 
   const loadStatus = async () => {
@@ -334,42 +334,68 @@ export default function AdminDatabasePage() {
               </p>
             </div>
 
-            {/* Caixa explicativa para liberação do cPanel */}
+            {/* Caixa explicativa DreamHost (Access denied) */}
             {!isConnected && (
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/90 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase tracking-wider">
                   <Key className="w-4 h-4 text-amber-600" />
-                  <span>Como liberar o acesso no cPanel da Sindícone:</span>
+                  <span>DreamHost — liberar MySQL remoto (Access denied)</span>
                 </div>
 
-                <ol className="text-xs text-slate-700 space-y-2 list-decimal list-inside leading-relaxed">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  A Vercel conecta de um IP da AWS (ex.:{' '}
+                  <code className="bg-slate-100 px-1 rounded text-[11px]">
+                    {detectedIp || 'ec2-....amazonaws.com'}
+                  </code>
+                  ). A DreamHost só aceita se o usuário MySQL permitir esse host.
+                </p>
+
+                <ol className="text-xs text-slate-700 space-y-2.5 list-decimal list-inside leading-relaxed">
                   <li>
-                    Acesse o <strong>cPanel</strong> do seu domínio (<code>sindicone.com.br/cpanel</code>).
+                    Acesse o painel{' '}
+                    <a
+                      href="https://panel.dreamhost.com/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-amber-800 font-bold underline underline-offset-2"
+                    >
+                      panel.dreamhost.com
+                    </a>
+                    .
                   </li>
                   <li>
-                    Procure e clique na opção <strong>&ldquo;MySQL Remoto&rdquo;</strong> (ou <em>Remote Database Access</em>).
+                    Vá em <strong>Databases → MySQL Databases</strong>.
                   </li>
                   <li>
-                    No campo <strong>Adicionar Host de Acesso</strong>, adicione o curinga para autorizar conexões na nuvem:
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <code className="bg-slate-100 text-slate-900 px-3 py-1.5 rounded-lg font-mono font-bold text-sm border border-slate-200">
+                    Anote o <strong>Hostname</strong> do banco (geralmente{' '}
+                    <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">mysql.seudominio.com</code>
+                    ) — use esse valor no campo Host abaixo, nunca <code>localhost</code>.
+                  </li>
+                  <li>
+                    No usuário MySQL (ex.: <code className="bg-slate-100 px-1 rounded">prestadores</code>),
+                    edite ou recrie o usuário com Hostname ={' '}
+                    <span className="inline-flex items-center gap-2 align-middle ml-1">
+                      <code className="bg-slate-100 text-slate-900 px-2.5 py-1 rounded-lg font-mono font-bold text-sm border border-slate-200">
                         %
                       </code>
                       <button
                         type="button"
                         onClick={() => handleCopy('%', 'wildcard')}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs cursor-pointer shadow-xs transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs cursor-pointer shadow-xs transition-colors"
                       >
                         {copiedWildcard ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         <span>{copiedWildcard ? 'Copiado!' : 'Copiar %'}</span>
                       </button>
-                    </div>
+                    </span>
+                    <span className="block mt-1 text-slate-500 pl-5">
+                      O <strong>%</strong> libera qualquer host (necessário porque a Vercel muda de IP).
+                    </span>
                   </li>
                   {detectedIp && (
-                    <li className="pt-1">
-                      Ou adicione o IP específico detectado nesta máquina:{' '}
-                      <div className="mt-1 flex items-center gap-2">
-                        <code className="bg-slate-100 text-slate-900 px-2.5 py-1 rounded font-mono font-bold text-xs border border-slate-200">
+                    <li>
+                      Host que a DreamHost acabou de recusar (para referência):
+                      <div className="mt-1 flex items-center gap-2 flex-wrap">
+                        <code className="bg-slate-100 text-slate-900 px-2.5 py-1 rounded font-mono font-bold text-[11px] border border-slate-200 break-all">
                           {detectedIp}
                         </code>
                         <button
@@ -378,13 +404,20 @@ export default function AdminDatabasePage() {
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] cursor-pointer"
                         >
                           {copiedIp ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                          <span>{copiedIp ? 'Copiado' : 'Copiar IP'}</span>
+                          <span>{copiedIp ? 'Copiado' : 'Copiar'}</span>
                         </button>
                       </div>
                     </li>
                   )}
                   <li>
-                    Clique em <strong>&ldquo;Adicionar Host&rdquo;</strong> e depois volte aqui e clique no botão <strong>&ldquo;Testar Conexão&rdquo;</strong>.
+                    Confirme usuário e senha no painel DreamHost. Se a senha tiver caracteres especiais
+                    (<code>@ # % &</code>), na Vercel use a senha URL-encoded em <code>DATABASE_URL</code>.
+                  </li>
+                  <li>
+                    Na Vercel → Environment Variables, salve{' '}
+                    <code className="bg-slate-100 px-1 rounded">DATABASE_URL</code> e{' '}
+                    <code className="bg-slate-100 px-1 rounded">USE_REAL_PRISMA=true</code>, faça{' '}
+                    <strong>Redeploy</strong>, depois volte aqui e clique em <strong>Testar Conexão</strong>.
                   </li>
                 </ol>
               </div>
@@ -500,9 +533,12 @@ export default function AdminDatabasePage() {
                 required
                 value={formData.host}
                 onChange={(e) => setFormData({ ...formData, host: e.target.value })}
-                placeholder="mysql.sindicone.com.br ou localhost"
+                placeholder="mysql.seudominio.com (DreamHost)"
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-slate-900 font-mono font-medium"
               />
+              <p className="text-[10px] text-slate-400 mt-1">
+                DreamHost: use o hostname MySQL do painel (ex. mysql.sindicone.com.br), não localhost.
+              </p>
             </div>
 
             <div>
