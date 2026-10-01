@@ -13,31 +13,16 @@ import {
   X,
   AlertTriangle,
 } from 'lucide-react';
-import { CategoryIcon } from '@/components/CategoryIcon';
+import { CategoryIcon, CATEGORY_ICON_LIST } from '@/components/CategoryIcon';
 import { authFetch } from '@/lib/apiClient';
-
-const AVAILABLE_ICONS = [
-  'Zap',
-  'Wrench',
-  'Paintbrush',
-  'Wind',
-  'Key',
-  'Hammer',
-  'Car',
-  'Sparkles',
-  'Scissors',
-  'Home',
-  'Truck',
-  'Shield',
-  'Heart',
-  'Computer',
-  'Camera',
-  'Plug',
-  'Briefcase',
-];
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
+  const [iconSearch, setIconSearch] = useState('');
+
+  const filteredIcons = CATEGORY_ICON_LIST.filter((iconName) =>
+    iconName.toLowerCase().includes(iconSearch.toLowerCase().trim())
+  );
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
@@ -400,21 +385,37 @@ export default function AdminCategoriesPage() {
 
               {/* Seletor de Ícone */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                  Escolha o Ícone
-                </label>
-                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl max-h-36 overflow-y-auto">
-                  {AVAILABLE_ICONS.map((iconName) => {
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Escolha o Ícone ({CATEGORY_ICON_LIST.length} disponíveis)
+                  </label>
+                  <span className="text-[11px] font-semibold text-amber-700">
+                    Selecionado: <strong>{formData.icon}</strong>
+                  </span>
+                </div>
+
+                <div className="mb-2">
+                  <input
+                    type="text"
+                    value={iconSearch}
+                    onChange={(e) => setIconSearch(e.target.value)}
+                    placeholder="Pesquisar ícone por nome..."
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-slate-900"
+                  />
+                </div>
+
+                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl max-h-48 overflow-y-auto">
+                  {filteredIcons.map((iconName) => {
                     const isSelected = formData.icon === iconName;
                     return (
                       <button
                         type="button"
                         key={iconName}
                         onClick={() => setFormData({ ...formData, icon: iconName })}
-                        className={`p-2.5 rounded-xl flex items-center justify-center transition-all ${
+                        className={`p-2.5 rounded-xl flex flex-col items-center justify-center transition-all group cursor-pointer ${
                           isSelected
-                            ? 'bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-400'
-                            : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                            ? 'bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-400 scale-105'
+                            : 'bg-white text-slate-600 hover:bg-amber-50 hover:text-amber-800 border border-slate-200'
                         }`}
                         title={iconName}
                       >
@@ -422,6 +423,11 @@ export default function AdminCategoriesPage() {
                       </button>
                     );
                   })}
+                  {filteredIcons.length === 0 && (
+                    <div className="col-span-8 text-center text-xs text-slate-400 py-4">
+                      Nenhum ícone encontrado para &quot;{iconSearch}&quot;
+                    </div>
+                  )}
                 </div>
               </div>
 
