@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
+import { DEFAULT_CATEGORIES } from './defaultCategories';
 
 // Types for in-memory models
 export interface MockUser {
@@ -102,101 +103,19 @@ function initializeMockDb(): MockDatabase {
     },
   ];
 
-  const categories: MockCategory[] = [
-    {
-      id: 'cat_eletricistas',
-      name: 'Eletricistas',
-      slug: 'eletricistas',
-      description: 'Instalação elétrica, reparos em disjuntores, fiação, iluminação residencial e industrial.',
-      icon: 'Zap',
-      order: 1,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_encanadores',
-      name: 'Encanadores e Desentupidoras',
-      slug: 'encanadores',
-      description: 'Conserto de vazamentos, desentupimento, instalação de louças e tubulações hidráulicas.',
-      icon: 'Wrench',
-      order: 2,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_pintores',
-      name: 'Pintores e Acabamentos',
-      slug: 'pintores',
-      description: 'Pintura residencial, predial, texturas, massa corrida, impermeabilização e verniz.',
-      icon: 'Paintbrush',
-      order: 3,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_ar_condicionado',
-      name: 'Ar-Condicionado e Refrigeração',
-      slug: 'ar-condicionado',
-      description: 'Instalação, limpeza, manutenção preventiva e recarga de gás para ar-condicionado.',
-      icon: 'Wind',
-      order: 4,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_chaveiros',
-      name: 'Chaveiros 24 Horas',
-      slug: 'chaveiros',
-      description: 'Abertura de portas, cópia de chaves codificadas, troca de fechaduras residenciais e automotivas.',
-      icon: 'Key',
-      order: 5,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_marcenaria',
-      name: 'Marcenaria e Móveis Planejados',
-      slug: 'marcenaria',
-      description: 'Fabricação e conserto de móveis sob medida, restauração e montagem de móveis.',
-      icon: 'Hammer',
-      order: 6,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_mecanica',
-      name: 'Mecânica e Auto Center',
-      slug: 'mecanica',
-      description: 'Revisão mecânica, suspensão, freios, injeção eletrônica, alinhamento e balanceamento.',
-      icon: 'Car',
-      order: 7,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-    {
-      id: 'cat_limpeza',
-      name: 'Limpeza e Diaristas',
-      slug: 'limpeza',
-      description: 'Serviços de faxina residencial, limpeza pós-obra, higienização de estofados e tapetes.',
-      icon: 'Sparkles',
-      order: 8,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-  ];
+  const categories: MockCategory[] = DEFAULT_CATEGORIES.map((cat) => ({
+    id: cat.id,
+    name: cat.name,
+    slug: cat.slug,
+    description: cat.description,
+    icon: cat.icon,
+    order: cat.order,
+    createdAt: new Date('2024-01-01T00:00:00Z'),
+    updatedAt: new Date('2024-01-01T00:00:00Z'),
+  }));
 
-  const subcategories: MockSubcategory[] = [
-    { id: 'sub_elet_1', name: 'Instalação e Reparos', slug: 'elet-instalacao-reparos', description: null, order: 1, categoryId: 'cat_eletricistas', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_elet_2', name: 'Laudos e SPDA', slug: 'elet-laudos-spda', description: null, order: 2, categoryId: 'cat_eletricistas', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_elet_3', name: 'Padrão de Entrada', slug: 'elet-padrao-entrada', description: null, order: 3, categoryId: 'cat_eletricistas', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_enc_1', name: 'Caça-Vazamentos', slug: 'enc-caca-vazamentos', description: null, order: 1, categoryId: 'cat_encanadores', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_enc_2', name: 'Desentupimentos', slug: 'enc-desentupimentos', description: null, order: 2, categoryId: 'cat_encanadores', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_enc_3', name: 'Prumadas e Tubulações', slug: 'enc-prumadas-tubulacoes', description: null, order: 3, categoryId: 'cat_encanadores', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_pint_1', name: 'Pintura Residencial', slug: 'pint-residencial', description: null, order: 1, categoryId: 'cat_pintores', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_pint_2', name: 'Restauração de Fachadas', slug: 'pint-fachadas', description: null, order: 2, categoryId: 'cat_pintores', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_ar_1', name: 'Instalação de Split', slug: 'ar-instalacao-split', description: null, order: 1, categoryId: 'cat_ar-condicionado', createdAt: new Date(), updatedAt: new Date() },
-    { id: 'sub_ar_2', name: 'Higienização e PMOC', slug: 'ar-higienizacao-pmoc', description: null, order: 2, categoryId: 'cat_ar-condicionado', createdAt: new Date(), updatedAt: new Date() },
-  ];
+  // Sem subcategorias padrão — o usuário cria conforme necessidade
+  const subcategories: MockSubcategory[] = [];
 
   const providers: MockProvider[] = [
     {
@@ -221,7 +140,7 @@ function initializeMockDb(): MockDatabase {
       isFeatured: true,
       isActive: true,
       viewsCount: 142,
-      categoryId: 'cat_eletricistas',
+      categoryId: 'cat_manutencao_predial',
       createdAt: new Date('2024-01-10T10:00:00Z'),
       updatedAt: new Date('2024-01-10T10:00:00Z'),
     },
@@ -247,7 +166,7 @@ function initializeMockDb(): MockDatabase {
       isFeatured: true,
       isActive: true,
       viewsCount: 98,
-      categoryId: 'cat_encanadores',
+      categoryId: 'cat_manutencao_predial',
       createdAt: new Date('2024-01-12T11:00:00Z'),
       updatedAt: new Date('2024-01-12T11:00:00Z'),
     },
@@ -273,7 +192,7 @@ function initializeMockDb(): MockDatabase {
       isFeatured: false,
       isActive: true,
       viewsCount: 65,
-      categoryId: 'cat_pintores',
+      categoryId: 'cat_obras_engenharia',
       createdAt: new Date('2024-01-15T09:30:00Z'),
       updatedAt: new Date('2024-01-15T09:30:00Z'),
     },
@@ -299,7 +218,7 @@ function initializeMockDb(): MockDatabase {
       isFeatured: true,
       isActive: true,
       viewsCount: 112,
-      categoryId: 'cat_ar_condicionado',
+      categoryId: 'cat_manutencao_predial',
       createdAt: new Date('2024-01-18T14:15:00Z'),
       updatedAt: new Date('2024-01-18T14:15:00Z'),
     },
@@ -325,7 +244,7 @@ function initializeMockDb(): MockDatabase {
       isFeatured: false,
       isActive: true,
       viewsCount: 77,
-      categoryId: 'cat_chaveiros',
+      categoryId: 'cat_seguranca_incendio',
       createdAt: new Date('2024-01-20T16:00:00Z'),
       updatedAt: new Date('2024-01-20T16:00:00Z'),
     },
@@ -351,7 +270,7 @@ function initializeMockDb(): MockDatabase {
       isFeatured: true,
       isActive: true,
       viewsCount: 89,
-      categoryId: 'cat_marcenaria',
+      categoryId: 'cat_obras_engenharia',
       createdAt: new Date('2024-01-22T08:00:00Z'),
       updatedAt: new Date('2024-01-22T08:00:00Z'),
     },
@@ -377,7 +296,7 @@ function initializeMockDb(): MockDatabase {
       isFeatured: false,
       isActive: true,
       viewsCount: 54,
-      categoryId: 'cat_limpeza',
+      categoryId: 'cat_limpeza_pragas',
       createdAt: new Date('2024-01-25T11:45:00Z'),
       updatedAt: new Date('2024-01-25T11:45:00Z'),
     },
@@ -423,6 +342,107 @@ export function generateUniqueId(prefix: string): string {
   const timestamp = Date.now();
   const rand = Math.random().toString(36).substring(2, 8);
   return `${prefix}_${timestamp}_${idSequence}_${rand}`;
+}
+
+/** Categorias do seed antigo → slug da nova categoria padrão. */
+const LEGACY_CATEGORY_REMAP: Record<string, string> = {
+  eletricistas: 'manutencao-predial-e-instalacoes',
+  encanadores: 'manutencao-predial-e-instalacoes',
+  pintores: 'obras-engenharia-e-laudos',
+  'ar-condicionado': 'manutencao-predial-e-instalacoes',
+  chaveiros: 'seguranca-e-prevencao-de-incendio',
+  marcenaria: 'obras-engenharia-e-laudos',
+  mecanica: 'servicos-operacionais-e-mao-de-obra',
+  limpeza: 'limpeza-conservacao-e-controle-de-pragas',
+  cat_eletricistas: 'manutencao-predial-e-instalacoes',
+  cat_encanadores: 'manutencao-predial-e-instalacoes',
+  cat_pintores: 'obras-engenharia-e-laudos',
+  cat_ar_condicionado: 'manutencao-predial-e-instalacoes',
+  cat_chaveiros: 'seguranca-e-prevencao-de-incendio',
+  cat_marcenaria: 'obras-engenharia-e-laudos',
+  cat_mecanica: 'servicos-operacionais-e-mao-de-obra',
+  cat_limpeza: 'limpeza-conservacao-e-controle-de-pragas',
+};
+
+/**
+ * Garante as 12 categorias padrão (nome, ícone, ordem) no mock local.
+ * Não cria subcategorias.
+ */
+export function ensureDefaultCategories(mockDb: MockDatabase): boolean {
+  let changed = false;
+  const bySlug = new Map(mockDb.categories.map((c) => [c.slug, c]));
+
+  for (const def of DEFAULT_CATEGORIES) {
+    const existing = bySlug.get(def.slug);
+    if (!existing) {
+      mockDb.categories.push({
+        id: def.id,
+        name: def.name,
+        slug: def.slug,
+        description: def.description,
+        icon: def.icon,
+        order: def.order,
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        updatedAt: new Date(),
+      });
+      bySlug.set(def.slug, mockDb.categories[mockDb.categories.length - 1]);
+      changed = true;
+      continue;
+    }
+
+    if (
+      existing.name !== def.name ||
+      existing.icon !== def.icon ||
+      existing.order !== def.order ||
+      existing.description !== def.description
+    ) {
+      existing.name = def.name;
+      existing.icon = def.icon;
+      existing.order = def.order;
+      existing.description = def.description;
+      existing.updatedAt = new Date();
+      changed = true;
+    }
+  }
+
+  const categoryById = new Map(mockDb.categories.map((c) => [c.id, c]));
+  const categoryBySlug = new Map(mockDb.categories.map((c) => [c.slug, c]));
+
+  // Remapeia prestadores das categorias antigas para as novas
+  for (const provider of mockDb.providers) {
+    const current = categoryById.get(provider.categoryId);
+    const remapSlug =
+      LEGACY_CATEGORY_REMAP[provider.categoryId] ||
+      (current ? LEGACY_CATEGORY_REMAP[current.slug] : undefined);
+    if (!remapSlug) continue;
+    const target = categoryBySlug.get(remapSlug);
+    if (target && provider.categoryId !== target.id) {
+      provider.categoryId = target.id;
+      provider.subcategoryId = null;
+      changed = true;
+    }
+  }
+
+  // Remove categorias legadas do seed antigo
+  const before = mockDb.categories.length;
+  mockDb.categories = mockDb.categories.filter((c) => !LEGACY_CATEGORY_REMAP[c.slug]);
+  if (mockDb.categories.length !== before) changed = true;
+
+  // Limpa subcategorias órfãs (vinculadas a categorias removidas)
+  const validCatIds = new Set(mockDb.categories.map((c) => c.id));
+  const subBefore = mockDb.subcategories.length;
+  mockDb.subcategories = mockDb.subcategories.filter((s) => validCatIds.has(s.categoryId));
+  if (mockDb.subcategories.length !== subBefore) changed = true;
+
+  // Reordenar: padrões primeiro por order, depois as demais
+  const defaultSlugOrder = new Map(DEFAULT_CATEGORIES.map((c) => [c.slug, c.order]));
+  mockDb.categories.sort((a, b) => {
+    const oa = defaultSlugOrder.get(a.slug) ?? a.order + 1000;
+    const ob = defaultSlugOrder.get(b.slug) ?? b.order + 1000;
+    return oa - ob;
+  });
+
+  return changed;
 }
 
 export function sanitizeAndDeduplicateDb(mockDb: MockDatabase) {
@@ -519,6 +539,9 @@ if (!db.banners) {
   db.banners = [];
 }
 sanitizeAndDeduplicateDb(db);
+if (ensureDefaultCategories(db)) {
+  saveDbToDisk(db);
+}
 
 export function getMockDatabase(): MockDatabase {
   return db;
