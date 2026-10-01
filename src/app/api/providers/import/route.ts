@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
+import { formatDatabaseError } from '@/lib/dbError';
 
 export async function POST(request: Request) {
   try {
@@ -197,23 +198,31 @@ export async function POST(request: Request) {
         results.errors.push({
           row: rowNumber,
           name: row.name,
-          message: err.message || 'Erro ao gravar prestador no banco.',
+          message: formatDatabaseError(err, err.message || 'Erro ao gravar prestador no MySQL.'),
         });
       }
     }
 
     return NextResponse.json({
-      success: true,
+      success: results.successCount > 0,
       successCount: results.successCount,
       failedCount: results.failedCount,
       total: providers.length,
       errors: results.errors,
-      message: `${results.successCount} prestador(es) importado(s) e salvo(s) com sucesso.`,
+      message:
+        results.failedCount === 0
+          ? `${results.successCount} prestador(es) importado(s) e salvo(s) com sucesso.`
+          : `${results.successCount} salvo(s), ${results.failedCount} com erro. Veja os detalhes abaixo.`,
     });
   } catch (error: any) {
     console.error('Erro na rota de importação:', error);
     return NextResponse.json(
-      { error: error.message || 'Erro interno ao processar arquivo de importação.' },
+      {
+        error: formatDatabaseError(
+          error,
+          error.message || 'Erro interno ao processar arquivo de importação.'
+        ),
+      },
       { status: 500 }
     );
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ExternalLink, Sparkles } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 export interface BannerItem {
   id: string;
@@ -20,10 +20,26 @@ interface BannerDisplayProps {
   className?: string;
 }
 
+/** Alturas / proporções por posição — sempre ocupando 100% da largura do container. */
+function frameClasses(position: BannerDisplayProps['position']): string {
+  switch (position) {
+    case 'HERO_TOP':
+      return 'min-h-[140px] sm:min-h-[180px] md:min-h-[220px] aspect-[21/6] sm:aspect-[21/5]';
+    case 'MIDDLE':
+      return 'min-h-[120px] sm:min-h-[160px] md:min-h-[200px] aspect-[21/6] sm:aspect-[21/5]';
+    case 'FOOTER':
+      return 'min-h-[110px] sm:min-h-[140px] md:min-h-[180px] aspect-[21/6] sm:aspect-[24/5]';
+    case 'SIDEBAR':
+      return 'min-h-[220px] aspect-[4/5] sm:aspect-[3/4]';
+    default:
+      return 'min-h-[140px] aspect-[21/5]';
+  }
+}
+
 export function BannerDisplay({ banners, position, className = '' }: BannerDisplayProps) {
-  const filteredBanners = banners.filter(
-    (b) => b.isActive && b.position === position
-  );
+  const filteredBanners = banners
+    .filter((b) => b.isActive && b.position === position)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   if (filteredBanners.length === 0) {
     return null;
@@ -32,44 +48,54 @@ export function BannerDisplay({ banners, position, className = '' }: BannerDispl
   const handleBannerClick = (bannerId: string) => {
     try {
       fetch(`/api/banners/${bannerId}/click`, { method: 'POST' }).catch(() => {});
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   };
 
+  const isSidebar = position === 'SIDEBAR';
+
   return (
-    <div className={`w-full ${className}`}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className={`w-full ${className}`} data-banner-position={position}>
+      <div className={`flex flex-col gap-4 ${isSidebar ? '' : 'w-full'}`}>
         {filteredBanners.map((banner) => {
-          const content = (
-            <div className="relative group overflow-hidden rounded-3xl border border-amber-200/80 shadow-md hover:shadow-xl transition-all duration-300 bg-white">
-              {/* Imagem do Banner */}
-              <div className="relative w-full aspect-[21/9] sm:aspect-[3/1] max-h-52 overflow-hidden bg-slate-900">
-                <img
-                  src={banner.imageUrl}
-                  alt={banner.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
+          const frame = (
+            <div
+              className={`relative group w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-slate-900 shadow-sm hover:shadow-lg transition-shadow duration-300 ${frameClasses(position)}`}
+            >
+              <img
+                src={banner.imageUrl}
+                alt={banner.title}
+                className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-[1.02] transition-transform duration-500"
+                loading="lazy"
+              />
 
-                {/* Tag Publicidade */}
-                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/10 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>Publicidade</span>
-                </div>
+              {/* Vinheta leve só na base — não cobre o anúncio inteiro */}
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/55 to-transparent pointer-events-none" />
 
-                {/* Título e Ação */}
-                <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-3 pointer-events-none">
-                  <p className="text-white text-xs sm:text-sm font-bold line-clamp-1 drop-shadow-md">
-                    {banner.title}
-                  </p>
+              <div className="absolute top-3 left-3 z-10">
+                <span className="inline-block bg-black/55 text-white/90 text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-md backdrop-blur-sm">
+                  Publicidade
+                </span>
+              </div>
+
+              {(banner.title || banner.linkUrl) && (
+                <div className="absolute bottom-3 left-3 right-3 z-10 flex items-end justify-between gap-3">
+                  {banner.title ? (
+                    <p className="text-white text-sm sm:text-base font-semibold line-clamp-1 drop-shadow-md">
+                      {banner.title}
+                    </p>
+                  ) : (
+                    <span />
+                  )}
                   {banner.linkUrl && (
-                    <span className="shrink-0 bg-amber-500 group-hover:bg-amber-400 text-slate-950 text-[11px] font-bold px-3 py-1 rounded-xl shadow-md transition-colors flex items-center gap-1 pointer-events-auto">
-                      <span>Saiba mais</span>
+                    <span className="shrink-0 inline-flex items-center gap-1 bg-amber-400 text-slate-950 text-[11px] sm:text-xs font-bold px-3 py-1.5 rounded-lg shadow-md group-hover:bg-amber-300 transition-colors">
+                      Saiba mais
                       <ExternalLink className="w-3 h-3" />
                     </span>
                   )}
                 </div>
-              </div>
+              )}
             </div>
           );
 
@@ -81,14 +107,19 @@ export function BannerDisplay({ banners, position, className = '' }: BannerDispl
                 target={banner.target || '_blank'}
                 rel="noopener noreferrer"
                 onClick={() => handleBannerClick(banner.id)}
-                className="block focus:outline-none"
+                className="block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 rounded-2xl sm:rounded-3xl"
+                aria-label={banner.title || 'Banner publicitário'}
               >
-                {content}
+                {frame}
               </a>
             );
           }
 
-          return <div key={banner.id}>{content}</div>;
+          return (
+            <div key={banner.id} className="w-full">
+              {frame}
+            </div>
+          );
         })}
       </div>
     </div>

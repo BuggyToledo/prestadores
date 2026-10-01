@@ -26,7 +26,7 @@ export default function NewProviderPage() {
             <span>Cadastrar Prestador de Serviços</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Escolha entre preencher o formulário manualmente ou importar vários profissionais de uma só vez através de planilha CSV.
+            Escolha entre preencher o formulário manualmente ou importar vários profissionais de uma só vez via planilha Excel (.xlsx) ou CSV.
           </p>
         </div>
 
@@ -55,7 +55,7 @@ export default function NewProviderPage() {
             }`}
           >
             <Upload className="w-4 h-4 text-amber-500" />
-            <span>Importar Planilha (CSV)</span>
+            <span>Importar Planilha (XLSX / CSV)</span>
           </button>
         </div>
       </div>

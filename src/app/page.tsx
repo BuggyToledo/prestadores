@@ -156,12 +156,10 @@ export default async function HomePage({ searchParams }: PageProps) {
         />
       </div>
 
-      {/* BANNER TOPO PRINCIPAL (HERO_TOP) */}
-      <BannerDisplay
-        banners={banners}
-        position="HERO_TOP"
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6"
-      />
+      {/* BANNER TOPO PRINCIPAL — mesma largura da área de conteúdo */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <BannerDisplay banners={banners} position="HERO_TOP" className="w-full" />
+      </div>
 
       {/* 3. CATEGORIAS EM DESTAQUE */}
       <section id="categorias" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
@@ -185,7 +183,7 @@ export default async function HomePage({ searchParams }: PageProps) {
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {categories.map((cat, idx) => {
             const isSelected = categoria === cat.slug;
             return (
@@ -243,12 +241,10 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* BANNER DO MEIO (MIDDLE) */}
-      <BannerDisplay
-        banners={banners}
-        position="MIDDLE"
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
-      />
+      {/* BANNER DO MEIO — mesma largura da área de conteúdo */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <BannerDisplay banners={banners} position="MIDDLE" className="w-full" />
+      </div>
 
       {/* 4. LISTAGEM DE PRESTADORES */}
       <section id="prestadores" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -311,12 +307,10 @@ export default async function HomePage({ searchParams }: PageProps) {
         )}
       </section>
 
-      {/* BANNER RODAPÉ (FOOTER) */}
-      <BannerDisplay
-        banners={banners}
-        position="FOOTER"
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
-      />
+      {/* BANNER RODAPÉ — mesma largura da área de conteúdo */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <BannerDisplay banners={banners} position="FOOTER" className="w-full" />
+      </div>
 
       {/* 5. BANNER CADASTRE SEU NEGÓCIO */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
