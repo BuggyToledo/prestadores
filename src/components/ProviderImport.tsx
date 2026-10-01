@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 import {
   Upload,
   Download,
@@ -52,51 +53,129 @@ export function ProviderImport() {
     errors: Array<{ row: number; name?: string; message: string }>;
   } | null>(null);
 
-  // Função para baixar o modelo de exemplo diretamente no navegador
+  // Baixar modelo de exemplo diretamente em formato Excel (.xlsx)
   const handleDownloadSample = () => {
-    const csvContent =
-      '\uFEFFNome;Categoria;Subcategoria;Cidade;Estado;Telefone;WhatsApp;Email;Endereco;Bairro;CEP;CNPJ;Site;Instagram;Descricao;Servicos;Destaque\n' +
-      'Apex Engenharia Predial;Manutenção Predial;Reformas de Fachadas;São Paulo;SP;(11) 3214-5500;(11) 98765-4321;contato@apexpredial.com.br;Av. Paulista, 1000;Bela Vista;01310-100;12.345.678/0001-90;https://apexpredial.com.br;@apexpredial;Especializada em reformas de fachadas, impermeabilização e manutenção condominial.;Impermeabilização, Restauração de Fachadas, Pintura Externa;SIM\n' +
-      'Volts Engenharia Elétrica;Eletricista;Laudos e SPDA;Rio de Janeiro;RJ;(21) 2555-8900;(21) 99887-1122;atendimento@voltseng.com.br;Rua Barata Ribeiro, 450;Copacabana;22040-001;98.765.432/0001-10;;@volts.eletrica;Laudos elétricos para condomínios, adequação de PC, SPDA e termografia.;Laudo Elétrico, SPDA, Pára-raios, Adequação de PC;SIM\n' +
-      'Drenosul Desentupidora;Encanador;Caça-Vazamentos;Porto Alegre;RS;(51) 3344-9988;(51) 98111-2233;contato@drenosul.com.br;Av. Ipiranga, 6600;Partenon;90619-900;;;;Desentupimento preventivo de prumadas, hidrojateamento e caça-vazamentos.;Desentupimento de Prumadas, Hidrojateamento, Vídeo Inspeção;NAO\n' +
-      'SegurTech Portaria e CFTV;Segurança e CFTV;Controle de Acesso;Belo Horizonte;MG;(31) 3456-7890;(31) 98877-6655;comercial@segurtech.com.br;Av. do Contorno, 5000;Funcionários;30110-028;45.678.901/0001-23;https://segurtech.com.br;@segurtech;Instalação e manutenção de portaria eletrônica, interfonia e câmeras de monitoramento.;Controle de Acesso, Câmeras IP, Interfonia Condominial;SIM\n' +
-      'Verde Vida Paisagismo Condominial;Jardinagem;Manutenção de Jardins;Curitiba;PR;(41) 3012-3344;(41) 99123-4567;contato@verdevida.com;Rua XV de Novembro, 1200;Centro;80060-000;;;@verdevida.jardins;Manutenção de jardins e áreas verdes para condomínios residenciais e comerciais.;Corte de Grama, Poda de Árvores, Plantio de Flores, Irrigação;NAO\n';
+    const data = [
+      [
+        'Nome',
+        'Categoria',
+        'Subcategoria',
+        'Cidade',
+        'Estado',
+        'Telefone',
+        'WhatsApp',
+        'Email',
+        'Endereco',
+        'Bairro',
+        'CEP',
+        'CNPJ',
+        'Site',
+        'Instagram',
+        'Descricao',
+        'Servicos',
+        'Destaque',
+      ],
+      [
+        'Apex Engenharia Predial',
+        'Manutenção Predial',
+        'Reformas de Fachadas',
+        'São Paulo',
+        'SP',
+        '(11) 3214-5500',
+        '(11) 98765-4321',
+        'contato@apexpredial.com.br',
+        'Av. Paulista, 1000',
+        'Bela Vista',
+        '01310-100',
+        '12.345.678/0001-90',
+        'https://apexpredial.com.br',
+        '@apexpredial',
+        'Especializada em reformas de fachadas, impermeabilização e manutenção condominial.',
+        'Impermeabilização, Restauração de Fachadas, Pintura Externa',
+        'SIM',
+      ],
+      [
+        'Volts Engenharia Elétrica',
+        'Eletricista',
+        'Laudos e SPDA',
+        'Rio de Janeiro',
+        'RJ',
+        '(21) 2555-8900',
+        '(21) 99887-1122',
+        'atendimento@voltseng.com.br',
+        'Rua Barata Ribeiro, 450',
+        'Copacabana',
+        '22040-001',
+        '98.765.432/0001-10',
+        '',
+        '@volts.eletrica',
+        'Laudos elétricos para condomínios, adequação de PC, SPDA e termografia.',
+        'Laudo Elétrico, SPDA, Pára-raios, Adequação de PC',
+        'SIM',
+      ],
+      [
+        'Drenosul Desentupidora',
+        'Encanador',
+        'Caça-Vazamentos',
+        'Porto Alegre',
+        'RS',
+        '(51) 3344-9988',
+        '(51) 98111-2233',
+        'contato@drenosul.com.br',
+        'Av. Ipiranga, 6600',
+        'Partenon',
+        '90619-900',
+        '',
+        '',
+        '',
+        'Desentupimento preventivo de prumadas, hidrojateamento e caça-vazamentos.',
+        'Desentupimento de Prumadas, Hidrojateamento, Vídeo Inspeção',
+        'NAO',
+      ],
+      [
+        'SegurTech Portaria e CFTV',
+        'Segurança e CFTV',
+        'Controle de Acesso',
+        'Belo Horizonte',
+        'MG',
+        '(31) 3456-7890',
+        '(31) 98877-6655',
+        'comercial@segurtech.com.br',
+        'Av. do Contorno, 5000',
+        'Funcionários',
+        '30110-028',
+        '45.678.901/0001-23',
+        'https://segurtech.com.br',
+        '@segurtech',
+        'Instalação e manutenção de portaria eletrônica, interfonia e câmeras de monitoramento.',
+        'Controle de Acesso, Câmeras IP, Interfonia Condominial',
+        'SIM',
+      ],
+      [
+        'Verde Vida Paisagismo Condominial',
+        'Jardinagem',
+        'Manutenção de Jardins',
+        'Curitiba',
+        'PR',
+        '(41) 3012-3344',
+        '(41) 99123-4567',
+        'contato@verdevida.com',
+        'Rua XV de Novembro, 1200',
+        'Centro',
+        '80060-000',
+        '',
+        '',
+        '@verdevida.jardins',
+        'Manutenção de jardins e áreas verdes para condomínios residenciais e comerciais.',
+        'Corte de Grama, Poda de Árvores, Plantio de Flores, Irrigação',
+        'NAO',
+      ],
+    ];
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'modelo_importacao_prestadores.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Parser robusto para linhas CSV respeitando aspas
-  const parseCSVLine = (line: string, delimiter: string): string[] => {
-    const result: string[] = [];
-    let cur = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          cur += '"';
-          i++; // pular quote escapada
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === delimiter && !inQuotes) {
-        result.push(cur.trim());
-        cur = '';
-      } else {
-        cur += char;
-      }
-    }
-    result.push(cur.trim());
-    return result;
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Prestadores');
+    XLSX.writeFile(workbook, 'modelo_importacao_prestadores.xlsx');
   };
 
   const handleFile = async (file: File) => {
@@ -107,38 +186,36 @@ export function ProviderImport() {
     setFileName(file.name);
 
     try {
-      const text = await file.text();
-      const lines = text
-        .replace(/\r\n/g, '\n')
-        .replace(/\r/g, '\n')
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0);
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName) {
+        throw new Error('A planilha está vazia ou sem abas válidas.');
+      }
 
-      if (lines.length < 2) {
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rawRows: any[][] = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: '',
+        blankrows: false,
+      });
+
+      if (!rawRows || rawRows.length < 2) {
         throw new Error('O arquivo precisa ter pelo menos o cabeçalho e 1 linha com dados.');
       }
 
-      // Detectar delimitador (';' ou ',')
-      const firstLine = lines[0];
-      const countSemicolon = (firstLine.match(/;/g) || []).length;
-      const countComma = (firstLine.match(/,/g) || []).length;
-      const countTab = (firstLine.match(/\t/g) || []).length;
-
-      let delimiter = ';';
-      if (countComma > countSemicolon && countComma > countTab) {
-        delimiter = ',';
-      } else if (countTab > countSemicolon && countTab > countComma) {
-        delimiter = '\t';
-      }
-
-      const headers = parseCSVLine(lines[0], delimiter).map((h) =>
-        h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+      // Headers normalizados
+      const headerRow = rawRows[0].map((h: any) =>
+        String(h || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .trim()
       );
 
       // Índices das colunas
       const findIndex = (aliases: string[]) =>
-        headers.findIndex((h) => aliases.some((a) => h.includes(a)));
+        headerRow.findIndex((h) => aliases.some((a) => h.includes(a)));
 
       const idxName = findIndex(['nome', 'prestador', 'empresa', 'profissional', 'razao']);
       const idxCategory = findIndex(['categoria', 'segmento', 'ramo', 'servico principal']);
@@ -159,37 +236,37 @@ export function ProviderImport() {
       const idxFeatured = findIndex(['destaque', 'destacado', 'vip', 'premium']);
 
       if (idxName === -1) {
-        throw new Error('Não foi possível identificar a coluna de "Nome" no cabeçalho do arquivo.');
+        throw new Error('Não foi possível identificar a coluna de "Nome" no cabeçalho da planilha.');
       }
 
       const parsed: ParsedProvider[] = [];
 
-      for (let i = 1; i < lines.length; i++) {
-        const row = parseCSVLine(lines[i], delimiter);
-        if (row.length === 0 || (row.length === 1 && !row[0])) continue;
+      for (let i = 1; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (!row || row.length === 0) continue;
 
-        const name = row[idxName] || '';
+        const name = row[idxName] ? String(row[idxName]).trim() : '';
         if (!name) continue;
 
-        const category = idxCategory !== -1 ? row[idxCategory] || 'Geral' : 'Geral';
-        const subcategory = idxSubcategory !== -1 ? row[idxSubcategory] || '' : '';
-        const city = idxCity !== -1 ? row[idxCity] || 'São Paulo' : 'São Paulo';
-        const state = idxState !== -1 ? row[idxState] || 'SP' : 'SP';
-        const phone = idxPhone !== -1 ? row[idxPhone] : '';
-        const whatsapp = idxWhatsapp !== -1 ? row[idxWhatsapp] : '';
-        const email = idxEmail !== -1 ? row[idxEmail] : '';
-        const address = idxAddress !== -1 ? row[idxAddress] : '';
-        const neighborhood = idxNeighborhood !== -1 ? row[idxNeighborhood] : '';
-        const zipCode = idxZipCode !== -1 ? row[idxZipCode] : '';
-        const cnpj = idxCnpj !== -1 ? row[idxCnpj] : '';
-        const website = idxWebsite !== -1 ? row[idxWebsite] : '';
-        const instagram = idxInstagram !== -1 ? row[idxInstagram] : '';
-        const description = idxDescription !== -1 ? row[idxDescription] : '';
-        const services = idxServices !== -1 ? row[idxServices] : '';
-        
+        const category = idxCategory !== -1 && row[idxCategory] ? String(row[idxCategory]).trim() : 'Geral';
+        const subcategory = idxSubcategory !== -1 && row[idxSubcategory] ? String(row[idxSubcategory]).trim() : '';
+        const city = idxCity !== -1 && row[idxCity] ? String(row[idxCity]).trim() : 'São Paulo';
+        const state = idxState !== -1 && row[idxState] ? String(row[idxState]).trim().toUpperCase() : 'SP';
+        const phone = idxPhone !== -1 && row[idxPhone] ? String(row[idxPhone]).trim() : '';
+        const whatsapp = idxWhatsapp !== -1 && row[idxWhatsapp] ? String(row[idxWhatsapp]).trim() : '';
+        const email = idxEmail !== -1 && row[idxEmail] ? String(row[idxEmail]).trim() : '';
+        const address = idxAddress !== -1 && row[idxAddress] ? String(row[idxAddress]).trim() : '';
+        const neighborhood = idxNeighborhood !== -1 && row[idxNeighborhood] ? String(row[idxNeighborhood]).trim() : '';
+        const zipCode = idxZipCode !== -1 && row[idxZipCode] ? String(row[idxZipCode]).trim() : '';
+        const cnpj = idxCnpj !== -1 && row[idxCnpj] ? String(row[idxCnpj]).trim() : '';
+        const website = idxWebsite !== -1 && row[idxWebsite] ? String(row[idxWebsite]).trim() : '';
+        const instagram = idxInstagram !== -1 && row[idxInstagram] ? String(row[idxInstagram]).trim() : '';
+        const description = idxDescription !== -1 && row[idxDescription] ? String(row[idxDescription]).trim() : '';
+        const services = idxServices !== -1 && row[idxServices] ? String(row[idxServices]).trim() : '';
+
         let isFeatured = false;
         if (idxFeatured !== -1 && row[idxFeatured]) {
-          const val = row[idxFeatured].toLowerCase().trim();
+          const val = String(row[idxFeatured]).toLowerCase().trim();
           isFeatured = val === 'sim' || val === 'true' || val === '1' || val === 's';
         }
 
@@ -215,12 +292,12 @@ export function ProviderImport() {
       }
 
       if (parsed.length === 0) {
-        throw new Error('Nenhum registro com nome preenchido foi encontrado no arquivo.');
+        throw new Error('Nenhum registro com nome preenchido foi encontrado na planilha.');
       }
 
       setParsedRows(parsed);
     } catch (err: any) {
-      setParseError(err.message || 'Erro ao processar o arquivo CSV.');
+      setParseError(err.message || 'Erro ao processar o arquivo Excel/CSV.');
       setParsedRows([]);
     } finally {
       setIsParsing(false);
@@ -297,10 +374,10 @@ export function ProviderImport() {
             <span>Modelo Pronto para Preenchimento</span>
           </div>
           <h2 className="text-lg font-black text-slate-900 tracking-tight">
-            Baixe a planilha modelo de exemplo
+            Baixe a planilha modelo de exemplo (.XLSX)
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Utilize nosso arquivo CSV pré-configurado com as colunas corretas (Nome, Categoria, Cidade, Estado, WhatsApp, etc.). Compatível com Microsoft Excel, Google Planilhas e LibreOffice.
+            Utilize nossa planilha Excel pré-configurada com as colunas corretas (Nome, Categoria, Subcategoria, Cidade, Estado, WhatsApp, etc.). Abra e edite no Microsoft Excel ou Google Planilhas.
           </p>
         </div>
 
@@ -311,7 +388,7 @@ export function ProviderImport() {
             className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-3 rounded-2xl shadow-sm hover:shadow-md transition-all text-sm cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            <span>Baixar Arquivo Modelo (.CSV)</span>
+            <span>Baixar Modelo (.XLSX)</span>
           </button>
         </div>
       </div>
@@ -390,7 +467,7 @@ export function ProviderImport() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv,text/csv,text/plain"
+            accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
             className="hidden"
           />
@@ -405,16 +482,16 @@ export function ProviderImport() {
 
           <div>
             <h3 className="text-base sm:text-lg font-bold text-slate-900">
-              {isParsing ? 'Processando arquivo...' : 'Arraste seu arquivo CSV aqui ou clique para selecionar'}
+              {isParsing ? 'Processando arquivo...' : 'Arraste sua planilha Excel (.XLSX) ou CSV aqui'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Suporta arquivos nos formatos <strong>.CSV</strong> codificados em UTF-8 com separador por vírgula (,) ou ponto e vírgula (;)
+              Suporta arquivos <strong>.XLSX (Excel)</strong>, <strong>.XLS</strong> ou <strong>.CSV</strong>
             </p>
           </div>
 
           <div className="inline-flex items-center gap-1.5 text-xs text-amber-700 font-semibold bg-amber-100/70 px-3 py-1.5 rounded-xl mt-2">
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Tamanho máximo recomendado: 5 MB</span>
+            <span>Formato recomendado: Microsoft Excel (.xlsx)</span>
           </div>
         </div>
       )}
@@ -429,7 +506,7 @@ export function ProviderImport() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <span>{fileName || 'Arquivo CSV'}</span>
+                  <span>{fileName || 'Planilha Carregada'}</span>
                   <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
                     {parsedRows.length} prestador(es) pronto(s)
                   </span>
@@ -472,14 +549,15 @@ export function ProviderImport() {
             </div>
           </div>
 
-          {/* Tabela de Prévia */}
+          {/* Tabela de Prévia com Colunas Separadas */}
           <div className="overflow-x-auto max-h-[420px] rounded-2xl border border-slate-100">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-700 uppercase font-bold text-[10px] tracking-wider sticky top-0 border-b border-slate-200">
                 <tr>
                   <th className="py-3 px-4">#</th>
                   <th className="py-3 px-4">Prestador</th>
-                  <th className="py-3 px-4">Categoria / Subcategoria</th>
+                  <th className="py-3 px-4">Categoria</th>
+                  <th className="py-3 px-4">Subcategoria</th>
                   <th className="py-3 px-4">Localização</th>
                   <th className="py-3 px-4">Contato</th>
                   <th className="py-3 px-4">Destaque</th>
@@ -496,16 +574,18 @@ export function ProviderImport() {
                       {row.cnpj && <div className="text-[10px] text-slate-400">CNPJ: {row.cnpj}</div>}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex flex-col gap-1 items-start">
-                        <span className="inline-block bg-slate-100 text-slate-800 text-[11px] font-semibold px-2 py-0.5 rounded-md">
-                          {row.category}
+                      <span className="inline-block bg-slate-100 text-slate-800 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
+                        {row.category}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {row.subcategory ? (
+                        <span className="inline-block bg-amber-50 text-amber-900 border border-amber-200 text-[11px] font-medium px-2.5 py-1 rounded-lg">
+                          {row.subcategory}
                         </span>
-                        {row.subcategory && (
-                          <span className="inline-block bg-amber-50 text-amber-800 border border-amber-200/60 text-[10px] font-medium px-1.5 py-0.5 rounded">
-                            ↳ {row.subcategory}
-                          </span>
-                        )}
-                      </div>
+                      ) : (
+                        <span className="text-slate-300 italic text-[11px]">-</span>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <div>{row.city} / {row.state}</div>
@@ -553,6 +633,7 @@ export function ProviderImport() {
           <span>Orientações para preenchimento da planilha</span>
         </h4>
         <ul className="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
+          <li><strong>Formato recomendado:</strong> Planilha <strong>.XLSX</strong> (Excel) ou <strong>.CSV</strong>.</li>
           <li><strong>Campos obrigatórios:</strong> Nome da empresa ou profissional. Se Cidade ou Estado não forem informados, serão preenchidos com os padrões (São Paulo/SP).</li>
           <li><strong>Categorias e Subcategorias:</strong> Se a categoria ou subcategoria informada na planilha ainda não existir no catálogo, ela será <strong>criada e associada automaticamente</strong> durante a importação.</li>
           <li><strong>Contatos:</strong> Preencha o WhatsApp com DDD para habilitar o botão de contato direto dos síndicos.</li>
