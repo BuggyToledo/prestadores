@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   MapPin,
   ArrowRight,
+  ChevronDown,
 } from 'lucide-react';
 
 interface PageProps {
@@ -24,6 +25,7 @@ interface PageProps {
     cidade?: string;
     uf?: string;
     destaque?: string;
+    todos?: string;
   }>;
 }
 
@@ -34,8 +36,9 @@ export default async function HomePage({ searchParams }: PageProps) {
   const q = params.q || '';
   const categoria = params.categoria || '';
   const cidade = params.cidade || '';
+  const showAll = params.todos === '1';
 
-  // Buscar categorias, prestadores e banners ativos em paralelo
+  // Buscar categorias e banners ativos em paralelo
   const [categories, banners] = await Promise.all([
     prisma.category.findMany({
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
@@ -85,8 +88,8 @@ export default async function HomePage({ searchParams }: PageProps) {
     ];
   }
 
-  // Buscar prestadores
-  const [providers, totalProvidersCount] = await Promise.all([
+  // Buscar prestadores ativos
+  const [allFetchedProviders, totalProvidersCount] = await Promise.all([
     prisma.provider.findMany({
       where: whereFilter,
       include: {
@@ -103,6 +106,34 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   const activeCategoryObject = categories.find((c) => c.slug === categoria);
   const isFiltering = Boolean(q || categoria || cidade);
+
+  // Sorteio/Embaralhamento controlado: Mantém destaques no topo e sorteia a ordem dos prestadores
+  const featured = allFetchedProviders.filter((p) => p.isFeatured);
+  const nonFeatured = allFetchedProviders.filter((p) => !p.isFeatured);
+
+  // Função para embaralhar mantendo determinismo seguro
+  const shuffle = <T,>(arr: T[]): T[] => {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  };
+
+  // Se estiver filtrando ou visualizando todos, preserva a ordem de relevância;
+  // Na visualização inicial da Home, sorteia a amostra para dar visibilidade a todos os profissionais
+  const providers = isFiltering || showAll
+    ? allFetchedProviders
+    : [...shuffle(featured), ...shuffle(nonFeatured)];
+
+  // Divisão dos lotes: Primeiros 9 prestadores -> Banner do Meio -> Próximos 6 prestadores
+  const firstBatch = providers.slice(0, 9);
+  const secondBatch = showAll || isFiltering
+    ? providers.slice(9)
+    : providers.slice(9, 15);
+
+  const remainingCount = providers.length - (firstBatch.length + secondBatch.length);
 
   return (
     <div className="min-h-screen">
@@ -243,23 +274,16 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* BANNER DO MEIO (MIDDLE) */}
-      <BannerDisplay
-        banners={banners}
-        position="MIDDLE"
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
-      />
-
-      {/* 4. LISTAGEM DE PRESTADORES */}
-      <section id="prestadores" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* 4. LISTAGEM DE PRESTADORES - PRIMEIRO LOTE (9 PRESTADORES) */}
+      <section id="prestadores" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-200">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-                {activeCategoryObject ? activeCategoryObject.name : 'Todos os Prestadores'}
+                {activeCategoryObject ? activeCategoryObject.name : 'Prestadores Recomendados'}
               </h2>
               <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
-                {providers.length} encontrados
+                {providers.length} disponíveis
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -271,7 +295,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   ]
                     .filter(Boolean)
                     .join(', ')}`
-                : 'Conecte-se com profissionais qualificados e peça seu orçamento'}
+                : 'Profissionais e empresas verificadas prontas para atender seu condomínio ou residência'}
             </p>
           </div>
 
@@ -285,10 +309,10 @@ export default async function HomePage({ searchParams }: PageProps) {
           )}
         </div>
 
-        {/* Grid de Prestadores */}
-        {providers.length > 0 ? (
+        {/* Primeiro Grid: 9 Prestadores */}
+        {firstBatch.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {providers.map((provider) => (
+            {firstBatch.map((provider) => (
               <ProviderCard key={provider.id} provider={provider} />
             ))}
           </div>
@@ -311,6 +335,44 @@ export default async function HomePage({ searchParams }: PageProps) {
         )}
       </section>
 
+      {/* BANNER INTERMEDIÁRIO (MIDDLE) - EXIBIDO ENTRE OS DOIS LOTES */}
+      <BannerDisplay
+        banners={banners}
+        position="MIDDLE"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+      />
+
+      {/* 5. SEGUNDO LOTE DE PRESTADORES (+ 6 PRESTADORES) */}
+      {secondBatch.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+          <div className="mb-6 flex items-center justify-between">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+              <Users className="w-5 h-5 text-amber-600" />
+              <span>Mais Opções de Especialistas</span>
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {secondBatch.map((provider) => (
+              <ProviderCard key={provider.id} provider={provider} />
+            ))}
+          </div>
+
+          {/* Botão Ver Todos / Expandir Catálogo */}
+          {!showAll && !isFiltering && remainingCount > 0 && (
+            <div className="mt-10 text-center">
+              <Link
+                href="/?todos=1#prestadores"
+                className="inline-flex items-center gap-2 bg-white hover:bg-amber-50 text-slate-900 font-bold text-sm px-8 py-4 rounded-2xl border-2 border-amber-400/80 shadow-md hover:shadow-lg transition-all"
+              >
+                <span>Ver Todos os {totalProvidersCount} Prestadores Cadastrados</span>
+                <ChevronDown className="w-4 h-4 text-amber-600" />
+              </Link>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* BANNER RODAPÉ (FOOTER) */}
       <BannerDisplay
         banners={banners}
@@ -318,7 +380,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
       />
 
-      {/* 5. BANNER CADASTRE SEU NEGÓCIO */}
+      {/* 6. BANNER CADASTRE SEU NEGÓCIO */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-8 sm:p-12 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden border border-slate-700">
           <div className="space-y-4 max-w-xl">
