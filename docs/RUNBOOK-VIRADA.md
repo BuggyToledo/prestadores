@@ -259,6 +259,126 @@ O banco `prestadores_v2` pode ficar parado para análise; não é necessário im
 
 ---
 
+## Compatibilidade: código antigo × schema novo
+
+### Colunas/tabelas das migrations aditivas
+
+Todas são **NULL** ou têm **DEFAULT** — nenhuma exige valor na INSERT do app antigo:
+
+| Objeto | Tipo | NULL / DEFAULT |
+|---|---|---|
+| `providers.kind` | VARCHAR(32) | `NOT NULL DEFAULT 'prestador'` |
+| `providers.trustTier` | VARCHAR(32) | `NOT NULL DEFAULT 'cadastrado'` |
+| `providers.displayName` | VARCHAR(191) | **NULL** |
+| `providers.serves24h` | BOOLEAN | `NOT NULL DEFAULT false` |
+| `providers.issuesNfe` | BOOLEAN | `NOT NULL DEFAULT false` |
+| `providers.acceptsInvoicingTerms` | BOOLEAN | `NOT NULL DEFAULT false` |
+| `providers.needsReview` | BOOLEAN | `NOT NULL DEFAULT false` |
+| `providers.reviewNotes` | TEXT | **NULL** |
+| `users.sessionVersion` | INT | `NOT NULL DEFAULT 0` |
+| tabela `audit_logs` | nova | só usada pelo código **novo**; app antigo **ignora** |
+
+**Conclusão:** o código da `main` atual (antes do #9) **consegue ler e gravar** (cadastrar/editar prestadores, banners, login) num banco com schema novo (`prestadores_v2`). O Prisma antigo só lista colunas do schema antigo; o MySQL preenche DEFAULT nas colunas novas.  
+**Nenhuma coluna impede** o app antigo. Banners não mudaram de schema.
+
+> O rollback oficial aponta o código antigo para o banco **antigo** (não migrado).  
+> Mesmo se alguém apontasse o código antigo para `prestadores_v2`, não há coluna bloqueante.
+
+---
+
+## Users no export e senha pós-virada
+
+O dump do `*_teste` inclui a tabela **`users`** completa:
+
+| Campo | Vai no export? |
+|---|---|
+| `id`, `name`, `email`, `passwordHash`, `role` | Sim |
+| `sessionVersion` | Sim (DEFAULT 0 se nunca trocou senha no teste) |
+| `createdAt`, `updatedAt` | Sim |
+
+**Sim:** se você trocou a senha **no `*_teste`** (via `hash-password` + `UPDATE`, ou via `/admin/alterar-senha` no preview apontando para o teste) **antes** do export, o `passwordHash` novo vai para `prestadores_v2`.
+
+### Validar na checagem pós-virada
+
+1. Anote o e-mail do admin e a senha que você definiu no teste.
+2. Após merge, em Production: logout → `/admin/login` com essa senha.
+3. Se falhar: no MySQL de `prestadores_v2`:
+   ```sql
+   SELECT email, LEFT(passwordHash, 7) AS hash_prefix, sessionVersion
+   FROM users WHERE role = 'ADMIN';
+   ```
+   - `hash_prefix` deve ser `$2a$10$` / `$2b$10$` (bcrypt).
+   - Compare com o mesmo `SELECT` no `*_teste` — `passwordHash` deve ser **idêntico**.
+4. Se o hash no v2 for o antigo: você trocou senha só na produção antiga (não exportada) — rode `hash-password` e `UPDATE` **direto em `prestadores_v2`** (SQL manual; não use `clean-data`).
+
+---
+
+## Manutenção futura do schema (após a virada)
+
+A allowlist bloqueia **scripts de escrita da aplicação** (`clean-data --apply`, sync admin) em bancos **sem** `_teste`.  
+**Não** bloqueia `npx prisma migrate deploy` — esse comando é CLI Prisma e você aponta a URL **manualmente**.
+
+### Fluxo seguro (sempre)
+
+1. **Ensaio no `*_teste`**
+   - Aplique a nova migration:  
+     `DATABASE_URL=.../*_teste` `npx prisma migrate deploy`
+   - Rode testes / preview Vercel apontando para esse teste.
+   - Se a migration for aditiva (NULL/DEFAULT), ok; se for destrutiva, **pare** e redesenhe.
+
+2. **Aplicar no `prestadores_v2` (manual, fora do deploy)**
+   - Em janela curta, no seu computador (nunca no build Vercel):
+     ```bash
+     # .env temporário SÓ para este comando — depois volte para *_teste
+     export DATABASE_URL="mysql://.../prestadores_v2"
+     npx prisma migrate deploy
+     unset DATABASE_URL   # ou restaure .env do teste
+     ```
+   - Ou rode o SQL da pasta `prisma/migrations/<timestamp>_*/migration.sql` no phpMyAdmin de `prestadores_v2`.
+
+3. **Só então** faça deploy do código que **depende** das colunas novas.
+
+4. **Nunca** confie no `npm run build` da Vercel para migrar (ele só faz `prisma generate`).
+
+Regra: **ensaio em `_teste` → migrate manual em `v2` → deploy de código**.  
+`clean-data` e sync continuam **somente** em `*_teste`.
+
+---
+
+## Tempo da janela e ensaio (dry-run) antes do dia real
+
+### Estimativa (ordem de grandeza)
+
+| Fase | Tempo típico | Observação |
+|---|---|---|
+| Backup + restore em `*_teste` | 15–60 min | Depende do tamanho do dump (~6–7k prestadores + imagens base64 em banners) |
+| `migrate resolve` + `migrate deploy` | 1–5 min | |
+| clean-data dry-run + **revisão humana** do CSV | **horas a dias** | Fora da “janela de virada”; faça antes |
+| `--apply` no teste | 5–30 min | |
+| Export teste → import `prestadores_v2` + contagens | 20–60 min | |
+| Env Vercel + merge + checklist | 15–30 min | |
+| **Janela crítica** (congelar admin → v2 no ar) | **~45–90 min** | Se ensaio já feito; revisão de dados **já** concluída |
+
+A janela que importa para “site congelado” é só do **export final / import v2 / env / merge** — não a revisão do CSV.
+
+### Ensaio completo (obrigatório antes do dia real)
+
+Use um **segundo** banco de teste e o **preview** do PR #9 — **sem** tocar Production.
+
+1. Crie `catalogo_servicos_ensaio_teste` (sufixo `_teste`).
+2. Restore do mesmo backup de produção.
+3. `migrate resolve` + `migrate deploy`.
+4. (Opcional) clean-data dry-run / apply parcial numa amostra.
+5. Export limpo → importe em outro banco de ensaio **sem** sufixo, ex. `prestadores_v2_ensaio` (só para treinar o import; **não** é Production).
+6. Vercel **Preview** do PR #9: `DATABASE_URL` = `catalogo_servicos_ensaio_teste` (ou o v2_ensaio se quiser simular Production — preferível preview no `*_teste` migrado).
+7. Percorra o **checklist pós-virada** no URL de preview.
+8. Simule rollback: mude mentalmente “Production URL → banco antigo”; no preview, troque env de volta e redeploy.
+9. Cronometre passos 5–7 — esse número é a sua janela real.
+
+Só após o ensaio ok, agende o dia da virada com Production → `prestadores_v2`.
+
+---
+
 ## FAQ técnico (pré-merge)
 
 **Build altera banco?** Não — só `prisma generate && next build`.
@@ -268,3 +388,5 @@ Para nunca confundir com alvo de scripts destrutivos; a allowlist **exige** sufi
 
 **Preview PR #9?**  
 `DATABASE_URL` = mesmo servidor, banco `*_teste` já no passo 3.
+
+**Código antigo quebra no schema novo?** Não — ver seção “Compatibilidade” acima.
