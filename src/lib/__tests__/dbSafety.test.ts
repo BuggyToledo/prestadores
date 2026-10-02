@@ -16,7 +16,25 @@ describe('isTestDatabaseName', () => {
   it('rejeita produção / sem sufixo', () => {
     expect(isTestDatabaseName('catalogo_servicos')).toBe(false);
     expect(isTestDatabaseName('prestadores')).toBe(false);
+    expect(isTestDatabaseName('prestadores_v2')).toBe(false);
+    expect(isTestDatabaseName('catalogo_servicos_teste_backup')).toBe(false);
     expect(isTestDatabaseName('teste_catalogo')).toBe(false);
+  });
+});
+
+/** Nomes usados na virada: banco novo de prod nunca deve passar na allowlist de escrita. */
+describe('scripts de escrita — bancos de produção bloqueados', () => {
+  const prodLikeNames = [
+    'prestadores_v2',
+    'catalogo_servicos',
+    'prestadores',
+    'sindicone_prod',
+  ];
+
+  it.each(prodLikeNames)('assertSafeTestDatabase recusa "%s"', (db) => {
+    expect(() =>
+      assertSafeTestDatabase(`mysql://u:segredo@localhost:3306/${db}`)
+    ).toThrow(/_teste|_test/);
   });
 });
 

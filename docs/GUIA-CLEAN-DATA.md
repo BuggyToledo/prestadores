@@ -5,7 +5,10 @@ Este guia explica, passo a passo, como gerar o relatório de revisão e
 
 > **Importante:** o sistema **só aceita** bancos cujo **nome** termina em
 > `_teste` ou `_test` (ex.: `catalogo_servicos_teste`).  
-> Nunca use o banco de produção.
+> Nunca rode `--apply` nem sync de escrita no banco de produção **atual** nem no
+> banco novo (`prestadores_v2`, etc.) — esses nomes **não** têm sufixo de teste
+> e os scripts **bloqueiam** de propósito.  
+> Fluxo completo de virada: `docs/RUNBOOK-VIRADA.md`.
 
 ---
 
@@ -100,12 +103,18 @@ O script:
 
 ---
 
-## Parte E — Trocar a senha do admin (depois do deploy)
+## Parte E — Trocar a senha do admin
+
+**Depois da virada** (banco com coluna `sessionVersion`, ex. `prestadores_v2`):
 
 1. Entre em `/admin/login` com a senha atual.
 2. No menu lateral, abra **Alterar Senha**.
 3. Informe senha atual + nova senha (mínimo 12 caracteres; não pode ser `admin123`).
 4. Ao salvar, as outras sessões abertas deixam de funcionar.
+
+**Antes da virada** (banco antigo, sem `sessionVersion`): use
+`npm run hash-password -- "SuaSenha"` e `UPDATE users SET passwordHash=...` no MySQL
+(ver `docs/RUNBOOK-VIRADA.md`).
 
 ---
 
