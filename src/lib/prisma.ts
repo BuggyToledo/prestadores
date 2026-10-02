@@ -88,19 +88,21 @@ export interface MockDatabase {
 }
 
 function initializeMockDb(): MockDatabase {
-  const adminPasswordHash = bcrypt.hashSync('admin123', 10);
+  const users: MockUser[] = [];
+  const seedPassword = process.env.ADMIN_PASSWORD;
+  const seedEmail = (process.env.ADMIN_EMAIL || 'admin@localhost').trim().toLowerCase();
 
-  const users: MockUser[] = [
-    {
+  if (seedPassword && seedPassword.length >= 12) {
+    users.push({
       id: 'usr_admin_1',
-      name: 'Administrador',
-      email: 'admin@catalogo.com',
-      passwordHash: adminPasswordHash,
+      name: process.env.ADMIN_NAME || 'Administrador',
+      email: seedEmail,
+      passwordHash: bcrypt.hashSync(seedPassword, 10),
       role: 'ADMIN',
       createdAt: new Date('2024-01-01T00:00:00Z'),
       updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-  ];
+    });
+  }
 
   const categories: MockCategory[] = [
     {

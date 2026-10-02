@@ -74,11 +74,16 @@ Abra seu navegador em [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 🔑 Credenciais de Acesso ao Painel Admin
+## 🔑 Acesso ao Painel Admin
 
-- **URL de Acesso**: [http://localhost:3000/admin](http://localhost:3000/admin) (ou clique em **Painel Admin** no cabeçalho)
-- **E-mail**: `admin@catalogo.com`
-- **Senha**: `admin123`
+- **URL**: `/admin/login`
+- Credenciais **não** são padrão no código. Crie o admin com seed:
+
+```bash
+ADMIN_EMAIL="seu@email.com" ADMIN_PASSWORD="senha_forte_min_12" npm run db:seed
+```
+
+A sessão usa cookie **httpOnly** (`SameSite=Lax`). Não há token em `localStorage`.
 
 ---
 
@@ -87,8 +92,11 @@ Abra seu navegador em [http://localhost:3000](http://localhost:3000).
 | Comando | Descrição |
 | :--- | :--- |
 | `npm run dev` | Inicia o servidor em modo desenvolvimento na porta 3000 |
-| `npm run build` | Valida a tipagem TypeScript e compila para produção |
+| `npm run build` | Gera Prisma Client e compila para produção |
 | `npm run start` | Inicia o servidor de produção compilado |
+| `npm run lint` | ESLint + typecheck |
+| `npm run typecheck` | Apenas `tsc --noEmit` |
+| `npm test` | Testes Vitest |
 | `npm run db:push` | Aplica o schema do Prisma diretamente no MySQL |
-| `npm run db:seed` | Executa o script de dados iniciais e admin |
+| `npm run db:seed` | Cria admin (via `ADMIN_EMAIL`/`ADMIN_PASSWORD`) e categorias |
 | `npm run db:studio` | Abre a interface visual do Prisma Studio no navegador |

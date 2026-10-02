@@ -1,15 +1,23 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
+import { sanitizeBannerFields } from '@/lib/sanitizeInputs';
 
 // Listar Banners
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const position = searchParams.get('position');
-    const all = searchParams.get('all') === 'true'; // Se true (Admin), traz ativos e inativos
+    const all = searchParams.get('all') === 'true'; // Admin: ativos e inativos
 
-    const where: any = {};
+    if (all) {
+      const session = await getSessionUser(request);
+      if (!session) {
+        return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+      }
+    }
+
+    const where: Record<string, unknown> = {};
 
     if (!all) {
       where.isActive = true;
@@ -42,18 +50,20 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { title, imageUrl, linkUrl, target, position, isActive, order } = body;
 
-    if (!title || !imageUrl) {
-      return NextResponse.json(
-        { error: 'Título do banner e imagem são obrigatórios.' },
-        { status: 400 }
-      );
+    if (!title) {
+      return NextResponse.json({ error: 'Título do banner é obrigatório.' }, { status: 400 });
+    }
+
+    const fields = sanitizeBannerFields({ imageUrl, linkUrl });
+    if (!fields.ok) {
+      return NextResponse.json({ error: fields.error }, { status: 400 });
     }
 
     const banner = await prisma.banner.create({
       data: {
         title: title.trim(),
-        imageUrl: imageUrl.trim(),
-        linkUrl: linkUrl?.trim() || null,
+        imageUrl: fields.imageUrl,
+        linkUrl: fields.linkUrl,
         target: target || '_blank',
         position: position || 'HERO_TOP',
         isActive: isActive !== undefined ? Boolean(isActive) : true,
