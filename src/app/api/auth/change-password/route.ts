@@ -54,7 +54,20 @@ export async function POST(request: Request) {
     });
 
     try {
-      await (prisma as unknown as { auditLog: { create: Function } }).auditLog.create({
+      await (
+        prisma as unknown as {
+          auditLog: {
+            create: (args: {
+              data: {
+                userId: string;
+                action: string;
+                details: string;
+                ip: string;
+              };
+            }) => Promise<unknown>;
+          };
+        }
+      ).auditLog.create({
         data: {
           userId: user.id,
           action: 'password_change',

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;font-family:'Plus Jakarta Sans',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-tertiary": "#ffffff", "on-error-container": "#93000a", "on-secondary-container": "#5c647a", "on-tertiary-container": "#004f1f", "inverse-primary": "#ffb95f", "error-container": "#ffdad6", "outline": "#867461", "primary-fixed": "#ffddb8", "on-secondary-fixed": "#131b2e", "card-bg": "#FFFFFF", "on-primary-fixed": "#2a1700", "surface-container": "#e5eeff", "on-surface": "#0b1c30", "secondary": "#565e74", "surface-dim": "#cbdbf5", "tertiary-fixed": "#7ffc97", "on-tertiary-fixed": "#002109", "navy-surface": "#1E293B", "on-primary": "#ffffff", "surface-container-highest": "#d3e4fe", "surface-bright": "#f8f9ff", "on-primary-fixed-variant": "#653e00", "on-surface-variant": "#534434", "surface-container-lowest": "#ffffff", "error": "#ba1a1a", "tertiary-fixed-dim": "#62df7d", "whatsapp-green": "#22C55E", "tertiary": "#006e2d", "inverse-surface": "#213145", "primary": "#855300", "on-primary-container": "#613b00", "background": "#f8f9ff", "secondary-fixed": "#dae2fd", "surface-variant": "#d3e4fe", "brand-gold-light": "#FEF3C7", "primary-fixed-dim": "#ffb95f", "on-tertiary-fixed-variant": "#005320", "border-subtle": "#E2E8F0", "secondary-container": "#dae2fd", "secondary-fixed-dim": "#bec6e0", "on-error": "#ffffff", "tertiary-container": "#4ac86a", "surface-container-low": "#eff4ff", "on-secondary-fixed-variant": "#3f465c", "inverse-on-surface": "#eaf1ff", "surface-bg": "#F8FAFC", "surface-tint": "#855300", "on-background": "#0b1c30", "on-secondary": "#ffffff", "navy-deep": "#0B132B", "surface": "#f8f9ff", "surface-container-high": "#dce9ff", "primary-container": "#f59e0b", "outline-variant": "#d8c3ad", "brand-gold-dark": "#D97706" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "margin": "1rem", "space-sm": "0.5rem", "space-xl": "1.5rem", "gutter": "1rem", "space-xs": "0.25rem", "space-md": "0.75rem", "space-lg": "1rem" }, fontFamily: { "headline-md": ["Plus Jakarta Sans"], "title-sm": ["Plus Jakarta Sans"], "display-hero": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"] }, fontSize: { "headline-md": ["18px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "title-sm": ["15px", { "lineHeight": "20px", "fontWeight": "700" }], "display-hero": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.03em", "fontWeight": "800" }], "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }], "label-md": ["13px", { "lineHeight": "16px", "fontWeight": "600" }], "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }] } } } };</script></head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-space-sm flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Voltar" class="w-11 h-11 flex items-center justify-center rounded-full text-navy-deep hover:bg-surface-container-high transition-colors" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><h1 class="font-headline-md text-headline-md text-navy-deep tracking-tight truncate max-w-[190px]">Provider Detail</h1></div><div class="flex items-center gap-space-xs"><button aria-label="Favoritar fornecedor" class="w-11 h-11 flex items-center justify-center rounded-full text-secondary hover:text-brand-gold-dark hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[22px]">bookmark_border</span></button><button aria-label="Compartilhar perfil" class="w-11 h-11 flex items-center justify-center rounded-full text-secondary hover:text-on-surface hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[22px]">share</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-space-xs"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col w-full bg-surface pt-16"><div class="flex flex-col w-full pb-28">
+<!-- Top Visual Gallery & Badges -->
+<section class="relative w-full">
+<!-- Storefront Cover Image -->
+<div class="relative w-full h-56 bg-cover bg-center" data-alt="Modern commercial electrical and plumbing warehouse store in Botafogo Rio de Janeiro, clean industrial architectural lighting, organized shelves of copper piping and electrical breakers, warm professional commercial atmosphere with a delivery van branded DIBA 695" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCr_4l_wEg0fsxdg2lsm_-OsnES1peH0ymdhIC4lSufqmlR2rZ0I4_rpkMqb_S8MFBZvWLJ74s8VqRel1K9uDfW8FAbtcWY5nvqd1QfU9AM3o8a9pSzMF1OfAONvc24QbO8ZhCXUTdkywiW-OS2EWfnyRvdCpj59VMQqv6axUYHWhhzm1ZvdGOzBPH8Rd11l8lFy-8FPLPqU77kOi_aGNDU032QopJnSk0y_iU1_6d5tK6kCRnHNf1VuQ')">
+<div class="absolute inset-0 bg-gradient-to-t from-navy-deep/80 via-navy-deep/20 to-transparent"></div>
+<!-- Top Pills Over Image -->
+<div class="absolute top-3 left-3 right-3 flex items-center justify-between">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-navy-deep/75 text-on-primary text-label-sm font-label-sm backdrop-blur-md">
+<span class="material-symbols-outlined text-[14px]">photo_camera</span>
+          1/5 fotos
+        </span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-whatsapp-green text-on-primary text-label-sm font-label-sm shadow-md">
+<span class="w-2 h-2 rounded-full bg-surface animate-ping"></span>
+          Pronta Entrega Predial
+        </span>
+</div>
+<!-- Quick Emergency Callout Overlay Banner -->
+<div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between px-3 py-2 rounded-lg bg-surface/95 backdrop-blur-md shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-whatsapp-green text-[18px]" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<p class="text-navy-deep font-label-md text-label-md">Balcão Express Síndico: <span class="text-tertiary font-title-sm">Online Agora</span></p>
+</div>
+<span class="text-on-surface-variant font-label-sm text-label-sm">Faturamento PJ 28d</span>
+</div>
+</div>
+<!-- Provider Header Info Card -->
+<div class="px-space-lg pt-4 pb-2">
+<!-- Logo + Official Badge Row -->
+<div class="flex items-start justify-between gap-3">
+<!-- Logo Avatar -->
+<div class="relative -mt-10 w-20 h-20 rounded-2xl bg-card-bg shadow-md p-1.5 flex items-center justify-center shrink-0">
+<div class="w-full h-full rounded-xl bg-surface-container flex flex-col items-center justify-center text-center p-1">
+<span class="font-headline-md text-headline-md tracking-tighter text-brand-gold-dark font-extrabold leading-none">DIBA</span>
+<span class="font-label-sm text-[10px] font-bold text-navy-deep tracking-wider">695</span>
+</div>
+<div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-whatsapp-green flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-on-primary text-[15px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+<!-- Official Seal Pill -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-gold-light text-brand-gold-dark shadow-sm">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-label-md text-label-md">Oficial Guia Síndico Né!</span>
+</div>
+</div>
+<!-- Provider Title -->
+<div class="mt-3">
+<h2 class="font-headline-lg text-headline-lg text-navy-deep">DIBA 695 Distribuidora</h2>
+<p class="font-body-md text-body-md text-secondary mt-0.5">Material Elétrico, Hidráulico &amp; Equipamentos Prediais</p>
+</div>
+<!-- Categories Chips -->
+<div class="flex flex-wrap gap-1.5 mt-2.5">
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-navy-deep font-label-sm text-label-sm">Materiais &amp; Equipamentos</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-navy-deep font-label-sm text-label-sm">Obras &amp; Reformas Prediais</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-brand-gold-dark font-label-sm text-label-sm">Linha Pesada Trifásica</span>
+</div>
+<!-- Authority Metrics Strip -->
+<div class="grid grid-cols-3 gap-2 mt-4 p-3 rounded-xl bg-surface-container-low shadow-sm text-center">
+<div class="flex flex-col items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-brand-gold-dark text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-headline-md text-headline-md text-navy-deep">4.9</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">48 síndicos parceiros</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
+<span class="font-headline-md text-headline-md text-navy-deep">12 Anos</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Mercado Rio de Janeiro</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-tertiary text-[18px]" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+<span class="font-headline-md text-headline-md text-navy-deep">100%</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Documentação OK</span>
+</div>
+</div>
+<!-- Quick Location String -->
+<div class="flex items-start gap-2 mt-3 px-1">
+<span class="material-symbols-outlined text-secondary text-[18px] shrink-0 mt-0.5">location_on</span>
+<p class="font-body-sm text-body-sm text-secondary">Rua da Passagem, 169 - Sobreloja · Botafogo, Rio de Janeiro - RJ</p>
+</div>
+</div>
+</section>
+<!-- Interactive Tabs Bar -->
+<nav aria-label="Navegação do fornecedor" class="sticky top-16 z-40 bg-surface/95 backdrop-blur-md px-space-lg pt-2 shadow-sm">
+<div class="flex justify-between items-center gap-2" id="provider-tabs">
+<button class="flex-1 pb-3 text-center font-label-md text-label-md text-brand-gold-dark transition-all duration-200" id="tab-btn-sobre" onclick="switchTab('sobre')">
+        Sobre
+        <div class="h-1 w-full bg-brand-gold-dark rounded-full mt-2" id="tab-ind-sobre"></div>
+</button>
+<button class="flex-1 pb-3 text-center font-label-md text-label-md text-secondary transition-all duration-200" id="tab-btn-conformidade" onclick="switchTab('conformidade')">
+        Conformidade
+        <div class="h-1 w-full bg-transparent rounded-full mt-2" id="tab-ind-conformidade"></div>
+</button>
+<button class="flex-1 pb-3 text-center font-label-md text-label-md text-secondary transition-all duration-200" id="tab-btn-avaliacoes" onclick="switchTab('avaliacoes')">
+        Avaliações (48)
+        <div class="h-1 w-full bg-transparent rounded-full mt-2" id="tab-ind-avaliacoes"></div>
+</button>
+</div>
+</nav>
+<!-- Content Sections Container -->
+<div class="px-space-lg pt-4 space-y-6">
+<!-- TAB 1: SOBRE & OPERAÇÃO -->
+<div class="space-y-6" id="section-sobre">
+<!-- Bio Summary Card -->
+<div class="p-4 rounded-xl bg-card-bg shadow-sm space-y-3">
+<div class="flex items-center gap-2 text-brand-gold-dark">
+<span class="material-symbols-outlined text-[20px]">storefront</span>
+<h3 class="font-title-sm text-title-sm text-navy-deep">Suprimento Predial Ágil</h3>
+</div>
+<p class="font-body-md text-body-md text-secondary leading-relaxed">
+          Especializada no atendimento a condomínios residenciais e centros empresariais da Zona Sul e Centro. Balcão técnico preparado para emergências de manutenção predial com faturamento a prazo PJ via boleto condomial e despacho expresso no mesmo dia.
+        </p>
+<!-- Dispatch Highlight -->
+<div class="p-3 rounded-lg bg-surface-container-low flex items-start gap-2.5">
+<span class="material-symbols-outlined text-whatsapp-green text-[20px] shrink-0 mt-0.5">local_shipping</span>
+<div>
+<p class="font-label-md text-label-md text-navy-deep">Entrega Expressa Predial em até 90 min</p>
+<p class="font-body-sm text-body-sm text-secondary">Frota própria atendendo Botafogo, Copacabana, Flamengo, Humaitá e Laranjeiras.</p>
+</div>
+</div>
+</div>
+<!-- Especialidades e Estoque Imediato -->
+<div class="p-4 rounded-xl bg-card-bg shadow-sm space-y-3">
+<h3 class="font-title-sm text-title-sm text-navy-deep flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">inventory_2</span>
+          Principais Itens para Condomínio
+        </h3>
+<p class="font-body-sm text-body-sm text-secondary">Estoque permanente pronto para retirada imediata no balcão:</p>
+<div class="flex flex-wrap gap-2 pt-1">
+<span class="px-3 py-1.5 rounded-lg bg-surface-container text-navy-deep font-label-md text-label-md flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-brand-gold-dark">cable</span>
+            Cabos de Alta Bitola
+          </span>
+<span class="px-3 py-1.5 rounded-lg bg-surface-container text-navy-deep font-label-md text-label-md flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-brand-gold-dark">power</span>
+            Disjuntores DIN e Caixa Moldada
+          </span>
+<span class="px-3 py-1.5 rounded-lg bg-surface-container text-navy-deep font-label-md text-label-md flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-brand-gold-dark">water_pump</span>
+            Bombas D'Água Prediais
+          </span>
+<span class="px-3 py-1.5 rounded-lg bg-surface-container text-navy-deep font-label-md text-label-md flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-brand-gold-dark">emergency_home</span>
+            Iluminação de Emergência
+          </span>
+<span class="px-3 py-1.5 rounded-lg bg-surface-container text-navy-deep font-label-md text-label-md flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-brand-gold-dark">plumbing</span>
+            Válvulas Redutoras de Pressão
+          </span>
+<span class="px-3 py-1.5 rounded-lg bg-surface-container text-navy-deep font-label-md text-label-md flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-brand-gold-dark">settings_input_composite</span>
+            Quadros de Comando Automatizados
+          </span>
+</div>
+</div>
+<!-- Localização & Cobertura RJ Section -->
+<div class="p-4 rounded-xl bg-card-bg shadow-sm space-y-4">
+<div>
+<div class="flex items-center justify-between">
+<h3 class="font-title-sm text-title-sm text-navy-deep flex items-center gap-2">
+<span class="material-symbols-outlined text-brand-gold-dark text-[20px]">map</span>
+              Localização &amp; Cobertura RJ
+            </h3>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-brand-gold-dark font-label-sm text-label-sm">Zona Sul RJ</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mt-1">A 250m do Metrô Botafogo · Doca com carga e descarga facilitada para furgões e utilitários.</p>
+</div>
+<!-- Visual Map Component -->
+<div class="relative w-full h-44 rounded-xl overflow-hidden shadow-inner bg-surface-container flex items-center justify-center" data-location="Rua da Passagem 169 Botafogo Rio de Janeiro" style="">
+<div class="absolute inset-0 bg-gradient-to-t from-navy-deep/70 via-transparent to-transparent"></div>
+<!-- Animated Pin Center -->
+<div class="relative z-10 flex flex-col items-center">
+<div class="w-10 h-10 rounded-full bg-brand-gold-dark text-on-primary flex items-center justify-center shadow-lg ring-4 ring-card-bg/60">
+<span class="material-symbols-outlined text-[24px]">store</span>
+</div>
+<span class="mt-1 px-2.5 py-0.5 rounded-full bg-navy-deep text-on-primary text-label-sm font-label-sm shadow-md">DIBA 695 Botafogo</span>
+</div>
+<!-- Bottom Left Distance Note -->
+<div class="absolute bottom-2 left-2 z-10 px-2.5 py-1 rounded bg-surface/90 backdrop-blur-sm text-navy-deep font-label-sm text-label-sm">
+            Estacionamento no local
+          </div>
+</div>
+<!-- Neighborhoods Delivery Chips -->
+<div>
+<p class="font-label-sm text-label-sm text-secondary mb-2">Bairros com Entrega Expressa no Mesmo Dia:</p>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-navy-deep font-label-sm text-label-sm">Botafogo</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-navy-deep font-label-sm text-label-sm">Copacabana</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-navy-deep font-label-sm text-label-sm">Flamengo</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-navy-deep font-label-sm text-label-sm">Ipanema / Leblon</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-navy-deep font-label-sm text-label-sm">Tijuca</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-navy-deep font-label-sm text-label-sm">Centro Empresarial</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-navy-deep font-label-sm text-label-sm">Barra da Tijuca</span>
+</div>
+</div>
+<!-- Google Maps CTA -->
+<button class="w-full h-11 rounded-lg bg-surface-container text-navy-deep font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-brand-gold-dark text-[20px]">near_me</span>
+          Como Chegar / Abrir no Google Maps
+        </button>
+</div>
+</div>
+<!-- TAB 2: COMPLIANCE & SEGURANÇA JURÍDICA (Módulo de Conformidade) -->
+<div class="space-y-4" id="section-conformidade">
+<!-- Dark Navy Institutional Compliance Card -->
+<div class="p-5 rounded-2xl bg-navy-deep text-on-primary shadow-xl space-y-4">
+<!-- Header -->
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-xl bg-tertiary-container/20 flex items-center justify-center text-whatsapp-green">
+<span class="material-symbols-outlined text-[24px]">verified</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-primary">Conformidade Predial</h3>
+<p class="font-body-sm text-body-sm text-secondary-fixed-dim">Segurança Jurídica para o Síndico</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-whatsapp-green/20 text-whatsapp-green font-label-sm text-label-sm shrink-0">Auditado Fev/2026</span>
+</div>
+<p class="font-body-sm text-body-sm text-slate-300">
+          Documentação validada pelo Grupo Ícone-Rio para prestação de contas sem risco de glosa em assembleia geral:
+        </p>
+<!-- Compliance Checklist Cards -->
+<div class="space-y-2.5 pt-1">
+<!-- Item 1 -->
+<div class="p-3 rounded-xl bg-navy-surface flex items-center justify-between gap-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-whatsapp-green text-[22px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div>
+<p class="font-title-sm text-title-sm text-on-primary">CNPJ Ativo e Regular</p>
+<p class="font-body-sm text-body-sm text-slate-400">Verificado na Receita Federal</p>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-whatsapp-green/10 text-whatsapp-green font-label-sm text-label-sm">Regular</span>
+</div>
+<!-- Item 2 -->
+<div class="p-3 rounded-xl bg-navy-surface flex items-center justify-between gap-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-whatsapp-green text-[22px]" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+<div>
+<p class="font-title-sm text-title-sm text-on-primary">NF-e para Condomínio</p>
+<p class="font-body-sm text-body-sm text-slate-400">Padrão Prefeitura RJ (Faturamento PJ)</p>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-whatsapp-green/10 text-whatsapp-green font-label-sm text-label-sm">Faturado</span>
+</div>
+<!-- Item 3 -->
+<div class="p-3 rounded-xl bg-navy-surface flex items-center justify-between gap-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-whatsapp-green text-[22px]" style="font-variation-settings: 'FILL' 1;">engineering</span>
+<div>
+<p class="font-title-sm text-title-sm text-on-primary">Responsabilidade Técnica CREA-RJ</p>
+<p class="font-body-sm text-body-sm text-slate-400">Engenheiro Eletricista Responsável Ativo</p>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-whatsapp-green/10 text-whatsapp-green font-label-sm text-label-sm">ART Ativa</span>
+</div>
+<!-- Item 4 -->
+<div class="p-3 rounded-xl bg-navy-surface flex items-center justify-between gap-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-whatsapp-green text-[22px]" style="font-variation-settings: 'FILL' 1;">shield</span>
+<div>
+<p class="font-title-sm text-title-sm text-on-primary">Certidões Negativas (CNDs)</p>
+<p class="font-body-sm text-body-sm text-slate-400">RFB, FGTS e CNDT em dia</p>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-whatsapp-green/10 text-whatsapp-green font-label-sm text-label-sm">Emissão OK</span>
+</div>
+</div>
+<!-- Compliance Footer Assurance -->
+<div class="pt-2 flex items-center gap-2 text-slate-400">
+<span class="material-symbols-outlined text-[16px] text-whatsapp-green">gavel</span>
+<span class="font-label-sm text-label-sm">Garantia integral de conformidade fiscal e jurídica para prestação de contas da administração.</span>
+</div>
+</div>
+<!-- Quick Document Request Trigger -->
+<div class="p-4 rounded-xl bg-card-bg shadow-sm flex items-center justify-between gap-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-brand-gold-dark text-[24px]">folder_zip</span>
+<div>
+<p class="font-title-sm text-title-sm text-navy-deep">Kit Documental do Fornecedor</p>
+<p class="font-body-sm text-body-sm text-secondary">Baixe CNDs atualizadas e cartão CNPJ</p>
+</div>
+</div>
+<button class="px-3.5 py-2 rounded-lg bg-surface-container text-navy-deep font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+          Solicitar
+        </button>
+</div>
+</div>
+<!-- TAB 3: AVALIAÇÕES DE SÍNDICOS -->
+<div class="space-y-4" id="section-avaliacoes">
+<!-- Reviews Header Bar -->
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-headline-md text-headline-md text-navy-deep">Avaliações Verificadas</h3>
+<p class="font-body-sm text-body-sm text-secondary">Opinião de quem gerencia condomínios no RJ</p>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold-light text-brand-gold-dark">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-headline-md text-headline-md">4.9</span>
+<span class="font-label-sm text-label-sm">/ 5.0</span>
+</div>
+</div>
+<!-- Review Card 1 -->
+<div class="p-4 rounded-xl bg-card-bg shadow-sm space-y-3">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-brand-gold-light text-brand-gold-dark flex items-center justify-center font-headline-md text-headline-md">
+              CM
+            </div>
+<div>
+<p class="font-title-sm text-title-sm text-navy-deep">Carlos Mendonça</p>
+<p class="font-body-sm text-body-sm text-secondary">Síndico Profissional · Condomínio Solar de Botafogo (48 un.)</p>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-whatsapp-green/10 text-whatsapp-green font-label-sm text-label-sm whitespace-nowrap">
+            Compra Faturada
+          </span>
+</div>
+<div class="flex items-center gap-1 text-brand-gold-dark">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm text-secondary ml-1">Há 12 dias</span>
+</div>
+<p class="font-body-md text-body-md text-navy-deep italic">
+          “Tivemos um estouro de barramento elétrico no domingo de manhã. A DIBA nos atendeu em 20 minutos no balcão e faturou direto para o CNPJ do condomínio. Salvou nossa vistoria e os elevadores voltaram a funcionar antes do almoço.”
+        </p>
+</div>
+<!-- Review Card 2 -->
+<div class="p-4 rounded-xl bg-card-bg shadow-sm space-y-3">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed text-navy-deep flex items-center justify-center font-headline-md text-headline-md">
+              RS
+            </div>
+<div>
+<p class="font-title-sm text-title-sm text-navy-deep">Renata Silveira</p>
+<p class="font-body-sm text-body-sm text-secondary">Síndica Moradora · Edifício Copacabana Prince (72 un.)</p>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-secondary font-label-sm text-label-sm whitespace-nowrap">
+            Síndico Auditado
+          </span>
+</div>
+<div class="flex items-center gap-1 text-brand-gold-dark">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm text-secondary ml-1">Há 3 semanas</span>
+</div>
+<p class="font-body-md text-body-md text-navy-deep italic">
+          “Excelente conformidade documental. As notas fiscais vieram discriminadas exatamente como a administradora exigiu para a pasta de prestação de contas. Entrega pontual na portaria sem transtornos.”
+        </p>
+</div>
+<!-- View All Reviews Link Button -->
+<button class="w-full py-3 rounded-xl bg-card-bg text-brand-gold-dark font-label-md text-label-md shadow-sm hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
+<span>Ver todas as 48 avaliações de síndicos</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Sticky Bottom Quick Actions Dock (Mobile Optimized) -->
+<div class="fixed bottom-0 left-0 right-0 z-50 bg-card-bg/95 backdrop-blur-xl shadow-2xl px-space-lg pt-3 pb-safe">
+<div class="flex flex-col gap-2 max-w-md mx-auto">
+<!-- Primary Emergency Dispatch Row -->
+<div class="flex items-center gap-2">
+<!-- WhatsApp Call to Action Button (Full Dominance) -->
+<a class="flex-1 h-12 rounded-xl bg-whatsapp-green text-on-primary flex items-center justify-center gap-2.5 shadow-md active:scale-[0.98] transition-all" href="https://wa.me/5521999999999?text=Ol%C3%A1%2C%20sou%20s%C3%ADndico%20e%20vi%20o%20perfil%20da%20DIBA%20no%20Guia%20S%C3%ADndico%20N%C3%A9!%20Preciso%20de%20atendimento%20para%20o%20meu%20condom%C3%ADnio." rel="noopener noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[24px]">chat</span>
+<div class="flex flex-col text-left">
+<span class="font-label-md text-label-md leading-tight">Chamar no WhatsApp</span>
+<span class="font-label-sm text-[10px] text-green-100 leading-tight">Balcão Express Síndico</span>
+</div>
+</a>
+<!-- Direct Dialer Phone Button -->
+<a aria-label="Ligar para o fornecedor" class="w-12 h-12 rounded-xl bg-surface-container-high text-navy-deep flex items-center justify-center shrink-0 active:scale-[0.98] transition-all" href="tel:+552125556950">
+<span class="material-symbols-outlined text-[22px]">phone</span>
+</a>
+</div>
+<!-- Formal PJ Quote & Invoicing Link -->
+<div class="flex items-center justify-between px-1 pb-1">
+<button class="inline-flex items-center gap-1.5 text-secondary hover:text-navy-deep text-label-sm font-label-sm" onclick="switchTab('conformidade')">
+<span class="material-symbols-outlined text-[16px] text-brand-gold-dark">shield</span>
+          Ver CNDs e Dados Fiscais PJ
+        </button>
+<button class="inline-flex items-center gap-1 text-brand-gold-dark font-label-md text-label-md">
+<span>Orçamento formal PJ</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Client-side Interactive Tab Handler -->
+<script>
+  function switchTab(target) {
+    const tabs = ['sobre', 'conformidade', 'avaliacoes'];
+    
+    tabs.forEach(tab => {
+      const section = document.getElementById('section-' + tab);
+      const btn = document.getElementById('tab-btn-' + tab);
+      const indicator = document.getElementById('tab-ind-' + tab);
+
+      if (tab === target) {
+        if (section) section.classList.remove('hidden');
+        if (btn) {
+          btn.classList.remove('text-secondary');
+          btn.classList.add('text-brand-gold-dark');
+        }
+        if (indicator) {
+          indicator.classList.remove('bg-transparent');
+          indicator.classList.add('bg-brand-gold-dark');
+        }
+      } else {
+        if (section) section.classList.add('hidden');
+        if (btn) {
+          btn.classList.remove('text-brand-gold-dark');
+          btn.classList.add('text-secondary');
+        }
+        if (indicator) {
+          indicator.classList.remove('bg-brand-gold-dark');
+          indicator.classList.add('bg-transparent');
+        }
+      }
+    });
+
+    // Smooth scroll to view tab content seamlessly
+    const tabNav = document.getElementById('provider-tabs');
+    if (tabNav) {
+      tabNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+</script></main></body></html>

@@ -1,85 +1,74 @@
-import React from 'react';
 import Link from 'next/link';
-import { BookOpen, Phone, Mail, Shield, Heart } from 'lucide-react';
+import { BookOpen, Heart, Mail, Phone, Shield } from 'lucide-react';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-slate-900 text-slate-300 pt-14 pb-8 border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-          {/* Coluna 1: Sobre */}
-          <div className="md:col-span-2 space-y-4">
+    <footer className="border-t border-brand-navy-mid bg-brand-navy text-slate-300">
+      <div className="mx-auto max-w-shell px-4 py-12 sm:px-6">
+        <div className="mb-10 grid grid-cols-1 gap-8 md:grid-cols-4">
+          <div className="space-y-4 md:col-span-2">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-amber-400 flex items-center justify-center">
-                <BookOpen className="w-5 h-5 text-slate-950 font-bold" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-control bg-brand-amber text-brand-navy">
+                <BookOpen className="h-5 w-5" aria-hidden />
               </div>
-              <span className="text-xl font-black tracking-tight text-white">
-                Guia Síndico <span className="text-amber-400">Né!</span>
+              <span className="text-xl font-extrabold tracking-tight text-white">
+                Guia Síndico <span className="text-brand-amber">Né!</span>
               </span>
             </div>
-            <p className="text-sm text-slate-400 max-w-md leading-relaxed">
-              O catálogo digital completo para síndicos e gestores encontrarem prestadores de serviços de confiança. Eletricistas, encanadores, pintores, marcenarias e muito mais.
+            <p className="max-w-md text-sm leading-relaxed text-slate-400">
+              Catálogo de prestadores de serviços para síndicos e gestores de condomínio.
+              Encontre profissionais cadastrados na sua região.
             </p>
-            <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/80 p-3 rounded-lg max-w-md border border-slate-700/50">
-              <Shield className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Plataforma segura com moderação e verificação de prestadores.</span>
+            <div className="flex max-w-md items-start gap-2 rounded-control border border-slate-700/60 bg-brand-navy-mid/80 p-3 text-xs text-slate-400">
+              <Shield className="mt-0.5 h-4 w-4 shrink-0 text-brand-amber" aria-hidden />
+              <span>Plataforma com moderação de cadastros. Selos Oficial/Documentado só quando aplicáveis.</span>
             </div>
           </div>
 
-          {/* Coluna 2: Acesso Rápido */}
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-amber-400 mb-4">
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-brand-amber">
               Navegação
             </h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/" className="hover:text-white transition-colors">
-                  Início / Buscar
+                <Link href="/" className="hover:text-white">
+                  Início
                 </Link>
               </li>
               <li>
-                <Link href="/#categorias" className="hover:text-white transition-colors">
-                  Categorias de Serviços
+                <Link href="/#categorias" className="hover:text-white">
+                  Categorias
                 </Link>
               </li>
               <li>
-                <Link href="/#prestadores" className="hover:text-white transition-colors">
-                  Destaques da Região
-                </Link>
-              </li>
-              <li>
-                <Link href="/admin" className="hover:text-amber-400 transition-colors flex items-center gap-1.5 font-medium">
-                  Área do Administrador
+                <Link href="/utilidade-publica" className="hover:text-white">
+                  Utilidade pública
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Coluna 3: Contato e Suporte */}
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-amber-400 mb-4">
-              Informações
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-brand-amber">
+              Contato
             </h3>
             <ul className="space-y-2.5 text-sm text-slate-400">
               <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-amber-400 shrink-0" />
+                <Phone className="h-4 w-4 shrink-0 text-brand-amber" aria-hidden />
                 <a
                   href="https://wa.me/5521978788211"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-amber-400 transition-colors"
+                  className="hover:text-brand-amber"
                 >
                   (21) 97878-8211
                 </a>
               </li>
               <li className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-amber-400 shrink-0" />
-                <a
-                  href="mailto:contato@sindicone.com.br"
-                  className="hover:text-amber-400 transition-colors"
-                >
+                <Mail className="h-4 w-4 shrink-0 text-brand-amber" aria-hidden />
+                <a href="mailto:contato@sindicone.com.br" className="hover:text-brand-amber">
                   contato@sindicone.com.br
                 </a>
               </li>
@@ -87,15 +76,14 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Frase Institucional Grupo Ícone-Rio */}
-        <div className="py-6 border-t border-slate-800/80 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs sm:text-sm text-slate-400 max-w-3xl leading-relaxed">
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-800 py-6 text-center sm:flex-row sm:text-left">
+          <p className="max-w-3xl text-xs leading-relaxed text-slate-400 sm:text-sm">
             Mais do que reunir empresas, o{' '}
             <a
               href="https://www.icone-rio.com.br/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-amber-400 hover:text-amber-300 font-bold underline underline-offset-2 transition-colors"
+              className="font-bold text-brand-amber underline underline-offset-2 hover:text-brand-amber-light"
             >
               Grupo Ícone‑Rio
             </a>{' '}
@@ -103,11 +91,19 @@ export function Footer() {
           </p>
         </div>
 
-        <div className="pt-6 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {currentYear} Guia Síndico Né! - Catálogo de Prestadores de Serviços. Todos os direitos reservados.</p>
+        <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-800 pt-6 text-center text-xs text-slate-500 sm:flex-row">
+          <p>© {currentYear} Guia Síndico Né!. Todos os direitos reservados.</p>
           <p className="flex items-center gap-1">
-            Desenvolvido com <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 inline" /> para conectar profissionais e clientes
+            Feito com <Heart className="inline h-3.5 w-3.5 fill-red-500 text-red-500" aria-hidden />{' '}
+            para síndicos
           </p>
+          {/* Link discreto de admin — só no rodapé */}
+          <Link
+            href="/admin"
+            className="text-[11px] text-slate-600 underline-offset-2 hover:text-slate-400 hover:underline"
+          >
+            Administração
+          </Link>
         </div>
       </div>
     </footer>

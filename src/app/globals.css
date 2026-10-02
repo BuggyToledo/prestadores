@@ -3,19 +3,33 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --brand-amber: #f59e0b;
+  --brand-amber-dark: #d97706;
+  --brand-amber-light: #fef3c7;
+  --brand-navy: #0f172a;
+  --brand-navy-mid: #1e293b;
+  --brand-green: #16a34a;
+  --brand-surface: #f8f9ff;
+  --brand-card: #ffffff;
+  --brand-border: #e2e8f0;
+  --brand-muted: #64748b;
+  --background: var(--brand-surface);
+  --foreground: var(--brand-navy);
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbar */
+/* Foco visível WCAG */
+:focus-visible {
+  outline: 2px solid var(--brand-amber);
+  outline-offset: 2px;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -32,4 +46,16 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+@layer utilities {
+  .pb-nav {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 768px) {
+    .pb-nav {
+      padding-bottom: 0;
+    }
+  }
 }

@@ -295,7 +295,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   ]
                     .filter(Boolean)
                     .join(', ')}`
-                : 'Profissionais e empresas verificadas prontas para atender seu condomínio ou residência'}
+                : 'Profissionais e empresas cadastrados prontos para atender seu condomínio ou residência'}
             </p>
           </div>
 
