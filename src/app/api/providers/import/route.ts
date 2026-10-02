@@ -76,10 +76,10 @@ export async function POST(request: Request) {
         } else {
           // Criar ou localizar categoria no banco
           const catName = String(rawCategory).trim();
-          let catSlug = slugify(catName) || `categoria-${Date.now()}`;
+          const catSlug = slugify(catName) || `categoria-${Date.now()}`;
 
           // Verificar se já existe no banco
-          let existingCategory = await prisma.category.findFirst({
+          const existingCategory = await prisma.category.findFirst({
             where: {
               OR: [{ name: catName }, { slug: catSlug }],
             },
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
           if (subcategoryMap.has(subKey)) {
             subcategoryId = subcategoryMap.get(subKey) || null;
           } else {
-            let subSlug = slugify(subName) || `sub-${Date.now()}`;
+            const subSlug = slugify(subName) || `sub-${Date.now()}`;
             const existingSub = await prisma.subcategory.findFirst({
               where: {
                 categoryId,

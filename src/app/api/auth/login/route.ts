@@ -1,11 +1,26 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { comparePassword, generateToken, AUTH_COOKIE_OPTIONS } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
+
+const LOGIN_LIMIT = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+function clientIp(request: Request): string {
+  const xf = request.headers.get('x-forwarded-for');
+  if (xf) return xf.split(',')[0]?.trim() || 'unknown';
+  const real = request.headers.get('x-real-ip');
+  if (real) return real.trim();
+  return 'unknown';
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const emailRaw = typeof body.email === 'string' ? body.email : '';
+    const password = typeof body.password === 'string' ? body.password : '';
+    const email = emailRaw.toLowerCase().trim();
+    const ip = clientIp(request);
 
     if (!email || !password) {
       return NextResponse.json(
@@ -14,8 +29,22 @@ export async function POST(request: Request) {
       );
     }
 
+    const rateKey = `login:${ip}:${email}`;
+    const rate = checkRateLimit(rateKey, LOGIN_LIMIT, LOGIN_WINDOW_MS);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        {
+          error: `Muitas tentativas. Tente novamente em ${rate.retryAfterSeconds} segundos.`,
+        },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(rate.retryAfterSeconds) },
+        }
+      );
+    }
+
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email },
     });
 
     if (!user) {
@@ -40,9 +69,9 @@ export async function POST(request: Request) {
       role: user.role,
     });
 
+    // Não devolve o token no body — apenas cookie httpOnly
     const response = NextResponse.json({
       success: true,
-      token,
       user: {
         id: user.id,
         name: user.name,

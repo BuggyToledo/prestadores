@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { toWhatsAppUrl } from './validation';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -50,10 +51,6 @@ export function formatCEP(value?: string | null): string {
 
 export function getWhatsAppLink(whatsapp?: string | null, providerName?: string): string {
   if (!whatsapp) return '';
-  const cleanNumber = whatsapp.replace(/\D/g, '');
-  const number = cleanNumber.startsWith('55') ? cleanNumber : `55${cleanNumber}`;
-  const message = encodeURIComponent(
-    `Olá${providerName ? ` ${providerName}` : ''}! Encontrei seu contato no Catálogo de Prestadores de Serviços e gostaria de solicitar um orçamento.`
-  );
-  return `https://wa.me/${number}?text=${message}`;
+  const message = `Olá${providerName ? `, vi a ${providerName}` : ''} no Guia Síndico Né! e gostaria de um orçamento para o condomínio.`;
+  return toWhatsAppUrl(whatsapp, message) || '';
 }

@@ -46,10 +46,8 @@ npm run db:push
 npm run db:seed
 ```
 
-> **Dados do Admin Padrão criados pelo Seed:**  
-> - **E-mail:** `admin@catalogo.com`  
-> - **Senha:** `admin123`  
-> *(Altere a senha após o primeiro acesso no painel administrativo)*
+> **Dados do Admin:** o seed **não** cria senha padrão.  
+> Execute com `ADMIN_EMAIL` e `ADMIN_PASSWORD` (mín. 12 caracteres) definidos no ambiente.
 
 ---
 
@@ -61,8 +59,10 @@ No painel da sua hospedagem (ex: Vercel em *Settings > Environment Variables*), 
 | :--- | :--- | :--- |
 | `DATABASE_URL` | `mysql://usuario:senha@host:3306/banco` | Link de conexão com seu MySQL |
 | `USE_REAL_PRISMA` | `true` | Ativa a conexão direta com o MySQL |
-| `JWT_SECRET` | `uma_chave_longa_e_aleatoria_aqui_12345` | Segredo para gerar tokens seguros |
+| `JWT_SECRET` | `chave_aleatoria_com_pelo_menos_32_caracteres` | **Obrigatória** (mín. 32 chars; sem fallback) |
 | `NEXT_PUBLIC_APP_URL` | `https://sindicone.com.br` | A URL pública do seu domínio com HTTPS |
+| `PRODUCTION_DATABASE_HOSTS` | `mysql.sindicone.com.br` | Denylist para scripts de teste |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | (somente no seed) | Criação do primeiro admin |
 
 ---
 

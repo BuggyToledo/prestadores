@@ -90,10 +90,21 @@ export function BannerDisplay({ banners, position, className = '' }: BannerDispl
           );
 
           if (banner.linkUrl) {
+            const safeHref =
+              banner.linkUrl.startsWith('http://') || banner.linkUrl.startsWith('https://')
+                ? banner.linkUrl
+                : null;
+            if (!safeHref) {
+              return (
+                <div key={banner.id} className="w-full">
+                  {content}
+                </div>
+              );
+            }
             return (
               <a
                 key={banner.id}
-                href={banner.linkUrl}
+                href={safeHref}
                 target={banner.target || '_blank'}
                 rel="noopener noreferrer"
                 onClick={() => handleBannerClick(banner.id)}

@@ -478,9 +478,10 @@ CREATE TABLE IF NOT EXISTS \`banners\` (
 -- ========================================================
 `;
 
-  // Users
+  // Users — passwordHash NUNCA é exportado (segurança)
+  sql += `-- Usuários: passwordHash omitido. Recrie admins via seed com ADMIN_PASSWORD.\n`;
   for (const u of db.users) {
-    sql += `REPLACE INTO \`users\` (\`id\`, \`name\`, \`email\`, \`passwordHash\`, \`role\`, \`createdAt\`, \`updatedAt\`) VALUES (${escapeSql(u.id)}, ${escapeSql(u.name)}, ${escapeSql(u.email)}, ${escapeSql(u.passwordHash)}, ${escapeSql(u.role)}, ${escapeSql(u.createdAt)}, ${escapeSql(u.updatedAt)});\n`;
+    sql += `-- USER ${escapeSql(u.id)} email=${escapeSql(u.email)} role=${escapeSql(u.role)} (hash omitido)\n`;
   }
 
   // Categories
