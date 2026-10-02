@@ -15,6 +15,7 @@ import {
   X,
   Image as ImageIcon,
   Database,
+  KeyRound,
 } from 'lucide-react';
 
 export default function AdminLayout({
@@ -114,6 +115,12 @@ export default function AdminLayout({
       href: '/admin/banco',
       icon: Database,
       active: pathname.startsWith('/admin/banco'),
+    },
+    {
+      name: 'Alterar Senha',
+      href: '/admin/alterar-senha',
+      icon: KeyRound,
+      active: pathname.startsWith('/admin/alterar-senha'),
     },
   ];
 

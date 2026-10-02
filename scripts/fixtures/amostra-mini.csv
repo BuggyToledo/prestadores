@@ -1,0 +1,11 @@
+id,name,slug,phone,whatsapp,address,neighborhood,city,state,category,kind
+p1,SENADOR FULANO DE TAL,senador-fulano,,,,,Rio de Janeiro,RJ,"Órgãos Públicos, Emergências e Utilidades",
+p2,OUVIDORIA DA LIGHT,ouvidoria-light,2134567890,21987654321,,,Rio de Janeiro,RJ,"Órgãos Públicos, Emergências e Utilidades",
+p3,VEREADOR JOÃO DA SILVA,vereador-joao,6133334444,61998887766,,,Brasília,RJ,"Órgãos Públicos, Emergências e Utilidades",
+p4,"ELETRICISTA EQUIPE 1000 - RUA DAS FLORES 100 - TIJUCA",eletricista-equipe-1000,21999887766,21999887766,,,Rio de Janeiro,RJ,"Órgãos Públicos, Emergências e Utilidades",
+p5,CLEANMASTER HIGIENIZACAO E LIMPEZA LTDA,cleanmaster,2133221100,21988776655,Rua A 10,Copacabana,Rio de Janeiro,RJ,"Limpeza, Conservação e Controle de Pragas",prestador
+p6,"adv cftv e alarmes me - rua x 50 - barra da tijuca",adv-cftv,21977665544,21977665544,,,Rio de Janeiro,RJ,"Segurança e Prevenção de Incêndio",prestador
+p7,PREFEITURA DO RIO - SECRETARIA DE CONSERVAÇÃO,prefeitura-conservacao,,,,,Rio de Janeiro,RJ,"Órgãos Públicos, Emergências e Utilidades",
+p8,SOS DESENTUPIDORA ÁGUA LIMPA,sos-desentupidora,21 98888-7777,21 98888-7777,,,Rio de Janeiro,RJ,"Manutenção Predial e Instalações",prestador
+p9,DUPLICADO MESMO WHATS,duplicado-a,21999887766,21999887766,,,Rio de Janeiro,RJ,"Manutenção Predial e Instalações",prestador
+p10,telefone invalido ltda,tel-invalido,123,123,,,Rio de Janeiro,RJ,"Tecnologia e Comunicação",prestador

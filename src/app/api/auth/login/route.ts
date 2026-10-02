@@ -67,6 +67,7 @@ export async function POST(request: Request) {
       email: user.email,
       name: user.name,
       role: user.role,
+      sv: (user as { sessionVersion?: number }).sessionVersion ?? 0,
     });
 
     // Não devolve o token no body — apenas cookie httpOnly

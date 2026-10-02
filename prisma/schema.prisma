@@ -19,16 +19,44 @@ enum BannerPosition {
   FOOTER
 }
 
+enum ProviderKind {
+  prestador
+  utilidade_publica
+}
+
+enum TrustTier {
+  cadastrado
+  documentado
+  oficial
+}
+
 model User {
-  id           String    @id @default(uuid())
-  name         String
-  email        String    @unique
-  passwordHash String
-  role         Role      @default(ADMIN)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  name               String
+  email              String    @unique
+  passwordHash       String
+  role               Role      @default(ADMIN)
+  /// Incrementado a cada troca de senha — invalida JWTs antigos
+  sessionVersion     Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  auditLogs          AuditLog[]
 
   @@map("users")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?  @db.Text
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action, createdAt])
+  @@map("audit_logs")
 }
 
 model Category {
@@ -65,33 +93,40 @@ model Subcategory {
 model Provider {
   id           String   @id @default(uuid())
   name         String
+  /// Nome para exibição (Title Case normalizado)
+  displayName  String?
   slug         String   @unique
   cnpj         String?
   phone        String?
   whatsapp     String?
   email        String?
-  website      String?
-  instagram    String?
-  
-  // Endereço
-  address      String?
+  website      String?  @db.Text
+  instagram    String?  @db.Text
+
+  address      String?  @db.Text
   neighborhood String?
   city         String
   state        String
   zipCode      String?
-  
-  // Detalhes
+
   description  String?  @db.Text
   services     String?  @db.Text
   logoUrl      String?  @db.Text
   coverUrl     String?  @db.Text
-  
-  // Status
+
   isFeatured   Boolean  @default(false)
   isActive     Boolean  @default(true)
   viewsCount   Int      @default(0)
-  
-  // Relacionamento com Categoria e Subcategoria
+
+  kind         ProviderKind @default(prestador)
+  trustTier    TrustTier    @default(cadastrado)
+  serves24h    Boolean      @default(false)
+  issuesNfe    Boolean      @default(false)
+  acceptsInvoicingTerms Boolean @default(false)
+  /// Fila de revisão manual (JSON com motivos)
+  needsReview  Boolean      @default(false)
+  reviewNotes  String?      @db.Text
+
   categoryId    String
   category      Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   subcategoryId String?
@@ -104,15 +139,18 @@ model Provider {
   @@index([subcategoryId])
   @@index([city, state])
   @@index([isActive])
+  @@index([kind])
+  @@index([trustTier])
+  @@index([needsReview])
   @@map("providers")
 }
 
 model Banner {
   id          String         @id @default(uuid())
-  title       String         // Nome do anunciante / campanha
-  imageUrl    String         @db.LongText // URL ou imagem base64
-  linkUrl     String?        @db.Text // Link ao clicar (site, WhatsApp, etc)
-  target      String         @default("_blank") // _blank ou _self
+  title       String
+  imageUrl    String         @db.LongText
+  linkUrl     String?        @db.Text
+  target      String         @default("_blank")
   position    BannerPosition @default(HERO_TOP)
   isActive    Boolean        @default(true)
   order       Int            @default(0)

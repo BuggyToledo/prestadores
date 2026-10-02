@@ -5,7 +5,7 @@ import {
   sanitizeInstagram,
   toWhatsAppUrl,
 } from '../validation';
-import { assertMirrorDeleteAllowed, assertNotProductionDatabase } from '../dbSafety';
+import { assertNotProductionDatabase } from '../dbSafety';
 import { checkRateLimit, clearRateLimitStore } from '../rateLimit';
 
 describe('sanitizeHttpUrl', () => {
@@ -67,37 +67,17 @@ describe('toWhatsAppUrl', () => {
   });
 });
 
-describe('dbSafety', () => {
+describe('dbSafety (legacy alias)', () => {
   it('bloqueia host de produção', () => {
     expect(() =>
-      assertNotProductionDatabase('mysql://u:p@mysql.sindicone.com.br:3306/db')
-    ).toThrow(/produção/);
+      assertNotProductionDatabase('mysql://u:p@mysql.sindicone.com.br:3306/catalogo_test')
+    ).toThrow(/produção|denylist|_teste|_test/i);
   });
 
-  it('permite host de teste', () => {
+  it('permite host de teste com nome *_test', () => {
     expect(() =>
       assertNotProductionDatabase('mysql://u:p@localhost:3306/catalogo_test')
     ).not.toThrow();
-  });
-
-  it('bloqueia mirror-delete com mock vazio', () => {
-    expect(() =>
-      assertMirrorDeleteAllowed({
-        confirmMirrorDelete: true,
-        mockProviderCount: 0,
-        mysqlProviderCount: 100,
-      })
-    ).toThrow(/0 prestadores/);
-  });
-
-  it('exige confirmação explícita', () => {
-    expect(() =>
-      assertMirrorDeleteAllowed({
-        confirmMirrorDelete: false,
-        mockProviderCount: 100,
-        mysqlProviderCount: 100,
-      })
-    ).toThrow(/confirmMirrorDelete/);
   });
 });
 

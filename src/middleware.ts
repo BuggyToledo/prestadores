@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-import { AUTH_COOKIE_NAME } from '@/lib/auth';
+import { AUTH_COOKIE_NAME } from '@/lib/authConstants';
 
 function getJwtSecretKey(): Uint8Array | null {
   const secret = process.env.JWT_SECRET?.trim();

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { getMockDatabase } from '@/lib/prisma';
 import { parseDatabaseUrl, syncDatabaseToMySql } from '@/lib/mysqlHelper';
-import { assertMirrorDeleteAllowed, assertNotProductionDatabase } from '@/lib/dbSafety';
+import { assertMirrorDeleteAllowed, assertSafeTestDatabase } from '@/lib/dbSafety';
 import mysql from 'mysql2/promise';
 
 /**
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      assertNotProductionDatabase(dbUrl);
+      assertSafeTestDatabase(dbUrl);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Host de produção bloqueado.';
       return NextResponse.json({ error: message }, { status: 403 });

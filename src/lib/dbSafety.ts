@@ -1,17 +1,43 @@
 /**
  * Segurança de conexão com banco.
- * Scripts e sync destrutivo NÃO podem apontar para produção.
+ * Scripts que escrevem no banco: allowlist do NOME do banco + denylist de host.
  */
 
-const DEFAULT_PRODUCTION_HOSTS = [
-  'mysql.sindicone.com.br',
-];
+const DEFAULT_PRODUCTION_HOSTS = ['mysql.sindicone.com.br'];
 
-function hostFromDatabaseUrl(databaseUrl: string): string {
+const TEST_DB_SUFFIXES = ['_teste', '_test'];
+
+export function parseDatabaseUrlParts(databaseUrl: string): {
+  host: string;
+  database: string;
+  user: string;
+} {
   try {
-    return new URL(databaseUrl).hostname.toLowerCase();
+    const parsed = new URL(databaseUrl);
+    const database = decodeURIComponent(parsed.pathname.replace(/^\//, '')).trim();
+    return {
+      host: (parsed.hostname || '').toLowerCase(),
+      database,
+      user: decodeURIComponent(parsed.username || ''),
+    };
   } catch {
     throw new Error('DATABASE_URL inválida.');
+  }
+}
+
+/** Máscara para logs — nunca exibe senha nem host completo. */
+export function maskDatabaseUrl(databaseUrl?: string | null): string {
+  if (!databaseUrl) return '(não definida)';
+  try {
+    const parsed = new URL(databaseUrl);
+    const db = decodeURIComponent(parsed.pathname.replace(/^\//, '')) || '?';
+    const user = parsed.username ? '***' : '';
+    const host = parsed.hostname
+      ? `${parsed.hostname.slice(0, 2)}***${parsed.hostname.slice(-4)}`
+      : '***';
+    return `mysql://${user ? `${user}@` : ''}${host}:****/${db}`;
+  } catch {
+    return '(DATABASE_URL inválida)';
   }
 }
 
@@ -23,35 +49,59 @@ export function listProductionDatabaseHosts(): string[] {
   return [...new Set([...DEFAULT_PRODUCTION_HOSTS, ...fromEnv])];
 }
 
-/** Aborta se a URL apontar para host de produção conhecido. */
-export function assertNotProductionDatabase(databaseUrl?: string | null): void {
+export function isTestDatabaseName(databaseName: string): boolean {
+  const name = databaseName.trim().toLowerCase();
+  return TEST_DB_SUFFIXES.some((suffix) => name.endsWith(suffix));
+}
+
+/**
+ * Trava principal: nome do banco deve terminar em _teste ou _test.
+ * Segunda camada: host não pode estar na denylist de produção.
+ */
+export function assertSafeTestDatabase(databaseUrl?: string | null): {
+  host: string;
+  database: string;
+} {
   const url = databaseUrl || process.env.DATABASE_URL;
   if (!url) {
     throw new Error('DATABASE_URL não configurada.');
   }
 
-  const host = hostFromDatabaseUrl(url);
-  const prodHosts = listProductionDatabaseHosts();
-  if (prodHosts.includes(host)) {
+  const parts = parseDatabaseUrlParts(url);
+
+  if (!parts.database) {
+    throw new Error('DATABASE_URL sem nome de banco.');
+  }
+
+  if (!isTestDatabaseName(parts.database)) {
     throw new Error(
-      `Operação bloqueada: DATABASE_URL aponta para host de produção (${host}). Use um banco de TESTE.`
+      `Operação bloqueada: o nome do banco deve terminar em "_teste" ou "_test" (recebido: "${parts.database}"). ` +
+        `URL mascarada: ${maskDatabaseUrl(url)}`
     );
   }
+
+  const prodHosts = listProductionDatabaseHosts();
+  if (prodHosts.includes(parts.host)) {
+    throw new Error(
+      `Operação bloqueada: host de produção na denylist. Use um banco de TESTE. URL mascarada: ${maskDatabaseUrl(url)}`
+    );
+  }
+
+  return parts;
+}
+
+/** @deprecated use assertSafeTestDatabase — mantido como alias da denylist. */
+export function assertNotProductionDatabase(databaseUrl?: string | null): void {
+  assertSafeTestDatabase(databaseUrl);
 }
 
 export type MirrorDeleteGuardInput = {
-  /** Confirmação explícita do cliente (body.confirmMirrorDelete === true). */
   confirmMirrorDelete: boolean;
   mockProviderCount: number;
   mysqlProviderCount: number;
-  /** Tolerância relativa (0.05 = 5%). */
   toleranceRatio?: number;
 };
 
-/**
- * Mirror-delete mock→MySQL só é permitido com confirmação explícita
- * e contagens compatíveis (evita apagar produção com mock vazio).
- */
 export function assertMirrorDeleteAllowed(input: MirrorDeleteGuardInput): void {
   if (!input.confirmMirrorDelete) {
     throw new Error(
@@ -73,7 +123,9 @@ export function assertMirrorDeleteAllowed(input: MirrorDeleteGuardInput): void {
     const ratio = Math.abs(mock - mysql) / mysql;
     if (ratio > tolerance && mock < mysql) {
       throw new Error(
-        `Mirror-delete bloqueado: mock (${mock}) incompatível com MySQL (${mysql}). Diferença > ${(tolerance * 100).toFixed(0)}%.`
+        `Mirror-delete bloqueado: mock (${mock}) incompatível com MySQL (${mysql}). Diferença > ${(
+          tolerance * 100
+        ).toFixed(0)}%.`
       );
     }
   }
