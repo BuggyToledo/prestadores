@@ -11,10 +11,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "clean-data": "tsx scripts/clean-data.ts",
+    "hash-password": "tsx scripts/hash-password.ts",
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js",
     "db:studio": "prisma studio",
-    "db:migrate": "prisma migrate deploy"
+    "db:migrate": "echo 'BLOQUEADO no deploy. Rode manualmente: npx prisma migrate deploy' && exit 1"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

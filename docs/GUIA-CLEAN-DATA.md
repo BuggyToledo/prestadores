@@ -36,9 +36,12 @@ Este guia explica, passo a passo, como gerar o relatório de revisão e
    npx prisma migrate resolve --applied 20251002120000_baseline
    npx prisma migrate deploy
 
-   # Alternativa rápida em teste (se preferir):
-   npx prisma db push
-   ```
+# Alternativa rápida em teste (NÃO usar em produção / NÃO usar no deploy):
+   # npx prisma db push
+```
+
+> O `npm run build` da Vercel **não** aplica migration.  
+> Ver também `docs/RUNBOOK-VIRADA.md`.
 
 ---
 
@@ -46,7 +49,11 @@ Este guia explica, passo a passo, como gerar o relatório de revisão e
 
 ### Opção 1: a partir do CSV de amostra (sem banco)
 
-1. Coloque/atualize o arquivo `data/amostra-providers.csv` (este arquivo **não** vai para o Git).
+1. Coloque/atualize o arquivo `data/amostra-providers.csv` (este arquivo **não** vai para o Git).  
+   A fixture atual tem **10 prestadores** → o CSV de revisão de exemplo
+   (`docs/samples/clean-data-review-amostra.csv`) tem **41 linhas** porque cada
+   registro pode gerar várias mudanças (kind, nome, telefone, etc.).  
+   Isso **não** é um recorte de ~550; para o catálogo real use `--from-db`.
 2. Rode:
    ```bash
    npm run clean-data -- --from-csv data/amostra-providers.csv
