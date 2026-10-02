@@ -39,8 +39,9 @@ export default function AdminDatabasePage() {
   const [statusData, setStatusData] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [envHint, setEnvHint] = useState<{ DATABASE_URL?: string; USE_REAL_PRISMA?: string } | null>(null);
 
-  // Formulário de conexão
+  // Formulário de conexão (padrão DreamHost: mysql.seudominio.com)
   const [formData, setFormData] = useState({
     host: 'mysql.sindicone.com.br',
     port: '3306',
@@ -48,7 +49,7 @@ export default function AdminDatabasePage() {
     password: '',
     database: 'catalogo_servicos',
     databaseUrl: '',
-    useRealPrisma: false,
+    useRealPrisma: true,
   });
 
   const loadStatus = async () => {
@@ -66,7 +67,7 @@ export default function AdminDatabasePage() {
           port: String(data.port || prev.port),
           user: data.user || prev.user,
           database: data.database || prev.database,
-          useRealPrisma: data.isRealPrismaActive || false,
+          useRealPrisma: Boolean(data.useRealPrismaEnv ?? data.isRealPrismaActive),
         }));
       } else {
         setErrorMsg(data.error || 'Erro ao consultar status do banco.');
@@ -115,6 +116,7 @@ export default function AdminDatabasePage() {
       setSaving(true);
       setErrorMsg('');
       setSuccessMsg('');
+      setEnvHint(null);
 
       const res = await authFetch('/api/admin/database/config', {
         method: 'POST',
@@ -127,7 +129,15 @@ export default function AdminDatabasePage() {
         throw new Error(data.error || 'Erro ao salvar configuração.');
       }
 
-      setSuccessMsg(data.message || 'Configurações atualizadas com sucesso!');
+      if (data.envPersisted === false) {
+        setEnvHint(data.requiredEnvVars || null);
+        setSuccessMsg(
+          data.message ||
+            'Na Vercel o .env não pode ser gravado. Configure as variáveis abaixo no painel da hospedagem e faça Redeploy.'
+        );
+      } else {
+        setSuccessMsg(data.message || 'Configurações atualizadas com sucesso!');
+      }
       loadStatus();
     } catch (e: any) {
       setErrorMsg(e.message || 'Erro ao salvar configurações.');
@@ -232,6 +242,47 @@ export default function AdminDatabasePage() {
         </div>
       )}
 
+      {statusData?.warning && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-sm flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold">Configuração incompleta</p>
+            <p className="text-xs leading-relaxed">{statusData.warning}</p>
+          </div>
+        </div>
+      )}
+
+      {(statusData?.serverless || envHint) && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 text-slate-100 text-sm space-y-3">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-amber-400" />
+            <p className="font-bold text-sm">Vercel / serverless — variáveis obrigatórias</p>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            O disco em <code className="text-amber-300">/var/task</code> é somente leitura (erro EROFS).
+            Cadastre estas variáveis em <strong>Vercel → Project → Settings → Environment Variables</strong>,
+            depois clique em <strong>Redeploy</strong>:
+          </p>
+          <div className="bg-black/40 rounded-xl p-3 font-mono text-[11px] space-y-2 overflow-x-auto">
+            <div>
+              <span className="text-slate-400">DATABASE_URL=</span>
+              <span className="text-emerald-300">
+                {envHint?.DATABASE_URL ||
+                  `mysql://${formData.user}:SUA_SENHA@${formData.host}:${formData.port}/${formData.database}`}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-400">USE_REAL_PRISMA=</span>
+              <span className="text-emerald-300">{envHint?.USE_REAL_PRISMA || 'true'}</span>
+            </div>
+            <div>
+              <span className="text-slate-400">JWT_SECRET=</span>
+              <span className="text-emerald-300">uma_chave_longa_e_aleatoria</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Card de Status da Conexão */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Status do MySQL */}
@@ -276,64 +327,89 @@ export default function AdminDatabasePage() {
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
                 {isConnected
-                  ? `Conexão ativa com ${statusData?.host}:${statusData?.port}. O sistema está pronto para leitura e gravação no banco de dados.`
-                  : 'Os prestadores, categorias e banners estão sendo salvos e persistidos com segurança no disco local (data/database.json). Para conectar diretamente ao servidor MySQL da hospedagem, siga as instruções de liberação abaixo.'}
+                  ? statusData?.isRealPrismaActive
+                    ? `Conexão ativa com ${statusData?.host}:${statusData?.port}. Cadastros e importações estão gravando no MySQL.`
+                    : `MySQL responde em ${statusData?.host}:${statusData?.port}, mas USE_REAL_PRISMA está desligado — ative a opção abaixo e sincronize para gravar no banco.`
+                  : 'Os prestadores, categorias e banners estão sendo salvos no disco local (data/database.json). Para conectar ao MySQL da hospedagem, siga as instruções de liberação abaixo.'}
               </p>
             </div>
 
-            {/* Caixa explicativa para liberação do cPanel */}
+            {/* Caixa explicativa DreamHost Allowable Hosts (Access denied) */}
             {!isConnected && (
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/90 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase tracking-wider">
                   <Key className="w-4 h-4 text-amber-600" />
-                  <span>Como liberar o acesso no cPanel da Sindícone:</span>
+                  <span>DreamHost — Allowable Hosts (obrigatório)</span>
                 </div>
 
-                <ol className="text-xs text-slate-700 space-y-2 list-decimal list-inside leading-relaxed">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  A DreamHost vem com <code className="bg-slate-100 px-1 rounded">%.dreamhost.com</code> por
+                  padrão — isso <strong>bloqueia a Vercel</strong>, mesmo com senha correta. O host recusado
+                  agora foi:{' '}
+                  <code className="bg-rose-50 text-rose-800 px-1 rounded text-[11px] break-all">
+                    {detectedIp || 'ec2-....amazonaws.com'}
+                  </code>
+                </p>
+
+                <ol className="text-xs text-slate-700 space-y-2.5 list-decimal list-inside leading-relaxed">
                   <li>
-                    Acesse o <strong>cPanel</strong> do seu domínio (<code>sindicone.com.br/cpanel</code>).
+                    Abra{' '}
+                    <a
+                      href="https://panel.dreamhost.com/index.cgi?tree=support.dashboard&amp;"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-amber-800 font-bold underline underline-offset-2"
+                    >
+                      panel.dreamhost.com
+                    </a>{' '}
+                    → <strong>Databases → MySQL Databases</strong>.
                   </li>
                   <li>
-                    Procure e clique na opção <strong>&ldquo;MySQL Remoto&rdquo;</strong> (ou <em>Remote Database Access</em>).
+                    Clique no <strong>nome do usuário</strong> (ex.: <code className="bg-slate-100 px-1 rounded">prestadores</code>),
+                    não só no nome do banco.
                   </li>
                   <li>
-                    No campo <strong>Adicionar Host de Acesso</strong>, adicione o curinga para autorizar conexões na nuvem:
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <code className="bg-slate-100 text-slate-900 px-3 py-1.5 rounded-lg font-mono font-bold text-sm border border-slate-200">
-                        %
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy('%', 'wildcard')}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs cursor-pointer shadow-xs transition-colors"
-                      >
-                        {copiedWildcard ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copiedWildcard ? 'Copiado!' : 'Copiar %'}</span>
-                      </button>
+                    No campo <strong>Allowable Hosts</strong>, cole exatamente estas 3 linhas (uma por linha):
+                    <div className="mt-2 bg-slate-900 text-emerald-300 font-mono text-[11px] rounded-xl p-3 space-y-0.5">
+                      <div>%.dreamhost.com</div>
+                      <div>%.amazonaws.com</div>
+                      <div>%</div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopy('%.dreamhost.com\n%.amazonaws.com\n%', 'wildcard')
+                      }
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs cursor-pointer shadow-xs"
+                    >
+                      {copiedWildcard ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedWildcard ? 'Copiado!' : 'Copiar as 3 linhas'}</span>
+                    </button>
                   </li>
-                  {detectedIp && (
-                    <li className="pt-1">
-                      Ou adicione o IP específico detectado nesta máquina:{' '}
-                      <div className="mt-1 flex items-center gap-2">
-                        <code className="bg-slate-100 text-slate-900 px-2.5 py-1 rounded font-mono font-bold text-xs border border-slate-200">
-                          {detectedIp}
-                        </code>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(detectedIp, 'ip')}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] cursor-pointer"
-                        >
-                          {copiedIp ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                          <span>{copiedIp ? 'Copiado' : 'Copiar IP'}</span>
-                        </button>
-                      </div>
-                    </li>
-                  )}
                   <li>
-                    Clique em <strong>&ldquo;Adicionar Host&rdquo;</strong> e depois volte aqui e clique no botão <strong>&ldquo;Testar Conexão&rdquo;</strong>.
+                    Clique em <strong>Modify [usuário] now!</strong> e aguarde ~1 minuto.
+                  </li>
+                  <li>
+                    Confirme o hostname MySQL (ex.: <code className="bg-slate-100 px-1 rounded">mysql.sindicone.com.br</code>)
+                    na Vercel em <code className="bg-slate-100 px-1 rounded">DATABASE_URL</code> +{' '}
+                    <code className="bg-slate-100 px-1 rounded">USE_REAL_PRISMA=true</code>, faça Redeploy e
+                    clique em <strong>Testar Conexão</strong>.
                   </li>
                 </ol>
+
+                {detectedIp && (
+                  <p className="text-[11px] text-slate-500 pt-1 border-t border-amber-100">
+                    Host AWS recusado (opcional adicionar também):{' '}
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(detectedIp, 'ip')}
+                      className="font-mono text-slate-800 underline cursor-pointer"
+                    >
+                      {detectedIp}
+                    </button>
+                    {copiedIp ? ' ✓' : ''}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -447,9 +523,12 @@ export default function AdminDatabasePage() {
                 required
                 value={formData.host}
                 onChange={(e) => setFormData({ ...formData, host: e.target.value })}
-                placeholder="mysql.sindicone.com.br ou localhost"
+                placeholder="mysql.seudominio.com (DreamHost)"
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-slate-900 font-mono font-medium"
               />
+              <p className="text-[10px] text-slate-400 mt-1">
+                DreamHost: use o hostname MySQL do painel (ex. mysql.sindicone.com.br), não localhost.
+              </p>
             </div>
 
             <div>
@@ -521,7 +600,9 @@ export default function AdminDatabasePage() {
                   Ativar Conexão Direta ao MySQL (USE_REAL_PRISMA)
                 </span>
                 <span className="text-[11px] text-slate-500 block">
-                  Ao ativar, o sistema se conecta e grava diretamente no MySQL. Caso ocorra qualquer falha no servidor, o sistema continuará operando com segurança no armazenamento local sem travar o site.
+                  Com esta opção ativa, cadastros, edições e importações gravam direto no MySQL.
+                  Se a conexão falhar, o sistema mostra o erro real (não salva &quot;de mentira&quot; no armazenamento local).
+                  Após ativar, use &quot;Sincronizar Tudo para o MySQL&quot; para enviar categorias e dados locais.
                 </span>
               </div>
             </label>
@@ -551,7 +632,9 @@ export default function AdminDatabasePage() {
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md transition-all cursor-pointer disabled:opacity-50"
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Salvar Configurações</span>
+                <span>
+                  {statusData?.serverless ? 'Testar e Aplicar nesta Sessão' : 'Salvar Configurações'}
+                </span>
               </button>
             </div>
           </div>

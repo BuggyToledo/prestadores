@@ -45,6 +45,8 @@ export async function testMySqlConnection(configOrUrl: string | MySqlConfig): Pr
   error?: string;
   code?: string;
   clientIp?: string;
+  hostDenied?: string;
+  allowableHostsToAdd?: string[];
 }> {
   const config = typeof configOrUrl === 'string' ? parseDatabaseUrl(configOrUrl) : configOrUrl;
 
@@ -80,17 +82,16 @@ export async function testMySqlConnection(configOrUrl: string | MySqlConfig): Pr
       } catch {}
     }
 
-    let clientIp: string | undefined;
-    const ipMatch = err.message?.match(/@'([^']+)'/);
-    if (ipMatch) {
-      clientIp = ipMatch[1];
-    }
+    const { formatMySqlConnectionError } = await import('./mysqlConnectionError');
+    const formatted = formatMySqlConnectionError(err);
 
     return {
       success: false,
-      error: err.message || 'Falha ao conectar com o MySQL',
-      code: err.code || 'UNKNOWN_ERROR',
-      clientIp,
+      error: formatted.error,
+      code: formatted.code || err.code || 'UNKNOWN_ERROR',
+      clientIp: formatted.clientIp,
+      hostDenied: formatted.hostDenied,
+      allowableHostsToAdd: formatted.allowableHostsToAdd,
     };
   }
 }
@@ -139,9 +140,9 @@ export async function createTablesInMySql(conn: mysql.Connection): Promise<void>
       phone VARCHAR(191) NULL,
       whatsapp VARCHAR(191) NULL,
       email VARCHAR(191) NULL,
-      website VARCHAR(191) NULL,
-      instagram VARCHAR(191) NULL,
-      address VARCHAR(191) NULL,
+      website TEXT NULL,
+      instagram TEXT NULL,
+      address TEXT NULL,
       neighborhood VARCHAR(191) NULL,
       city VARCHAR(191) NOT NULL,
       state VARCHAR(191) NOT NULL,
@@ -189,6 +190,20 @@ export async function createTablesInMySql(conn: mysql.Connection): Promise<void>
     }
   } finally {
     await conn.query('SET FOREIGN_KEY_CHECKS=1;');
+  }
+
+  // Alinha colunas em bancos já existentes (CREATE IF NOT EXISTS não altera schema antigo)
+  const alterStatements = [
+    'ALTER TABLE providers MODIFY COLUMN website TEXT NULL',
+    'ALTER TABLE providers MODIFY COLUMN instagram TEXT NULL',
+    'ALTER TABLE providers MODIFY COLUMN address TEXT NULL',
+  ];
+  for (const sql of alterStatements) {
+    try {
+      await conn.query(sql);
+    } catch {
+      // Ignora se a tabela ainda não existir ou o tipo já estiver correto
+    }
   }
 }
 
@@ -430,9 +445,9 @@ CREATE TABLE IF NOT EXISTS \`providers\` (
   \`phone\` VARCHAR(191) NULL,
   \`whatsapp\` VARCHAR(191) NULL,
   \`email\` VARCHAR(191) NULL,
-  \`website\` VARCHAR(191) NULL,
-  \`instagram\` VARCHAR(191) NULL,
-  \`address\` VARCHAR(191) NULL,
+  \`website\` TEXT NULL,
+  \`instagram\` TEXT NULL,
+  \`address\` TEXT NULL,
   \`neighborhood\` VARCHAR(191) NULL,
   \`city\` VARCHAR(191) NOT NULL,
   \`state\` VARCHAR(191) NOT NULL,
