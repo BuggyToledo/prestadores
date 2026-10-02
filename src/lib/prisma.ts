@@ -10,8 +10,18 @@ export interface MockUser {
   email: string;
   passwordHash: string;
   role: 'ADMIN' | 'EDITOR';
+  sessionVersion: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface MockAuditLog {
+  id: string;
+  userId: string | null;
+  action: string;
+  details: string | null;
+  ip: string | null;
+  createdAt: Date;
 }
 
 export interface MockCategory {
@@ -39,6 +49,7 @@ export interface MockSubcategory {
 export interface MockProvider {
   id: string;
   name: string;
+  displayName?: string | null;
   slug: string;
   cnpj: string | null;
   phone: string | null;
@@ -58,6 +69,13 @@ export interface MockProvider {
   isFeatured: boolean;
   isActive: boolean;
   viewsCount: number;
+  kind?: 'prestador' | 'utilidade_publica';
+  trustTier?: 'cadastrado' | 'documentado' | 'oficial';
+  serves24h?: boolean;
+  issuesNfe?: boolean;
+  acceptsInvoicingTerms?: boolean;
+  needsReview?: boolean;
+  reviewNotes?: string | null;
   categoryId: string;
   subcategoryId?: string | null;
   createdAt: Date;
@@ -85,22 +103,26 @@ export interface MockDatabase {
   subcategories: MockSubcategory[];
   providers: MockProvider[];
   banners: MockBanner[];
+  auditLogs: MockAuditLog[];
 }
 
 function initializeMockDb(): MockDatabase {
-  const adminPasswordHash = bcrypt.hashSync('admin123', 10);
+  const users: MockUser[] = [];
+  const seedPassword = process.env.ADMIN_PASSWORD;
+  const seedEmail = (process.env.ADMIN_EMAIL || 'admin@localhost').trim().toLowerCase();
 
-  const users: MockUser[] = [
-    {
+  if (seedPassword && seedPassword.length >= 12) {
+    users.push({
       id: 'usr_admin_1',
-      name: 'Administrador',
-      email: 'admin@catalogo.com',
-      passwordHash: adminPasswordHash,
+      name: process.env.ADMIN_NAME || 'Administrador',
+      email: seedEmail,
+      passwordHash: bcrypt.hashSync(seedPassword, 10),
       role: 'ADMIN',
+      sessionVersion: 0,
       createdAt: new Date('2024-01-01T00:00:00Z'),
       updatedAt: new Date('2024-01-01T00:00:00Z'),
-    },
-  ];
+    });
+  }
 
   const categories: MockCategory[] = [
     {
@@ -414,7 +436,7 @@ function initializeMockDb(): MockDatabase {
     },
   ];
 
-  return { users, categories, subcategories, providers, banners };
+  return { users, categories, subcategories, providers, banners, auditLogs: [] };
 }
 
 let idSequence = 0;
@@ -517,6 +539,12 @@ if (!db.subcategories) {
 }
 if (!db.banners) {
   db.banners = [];
+}
+if (!db.auditLogs) {
+  db.auditLogs = [];
+}
+for (const u of db.users) {
+  if (typeof u.sessionVersion !== 'number') u.sessionVersion = 0;
 }
 sanitizeAndDeduplicateDb(db);
 
@@ -792,12 +820,56 @@ const mockPrisma = {
         email: args.data.email,
         passwordHash: args.data.passwordHash,
         role: args.data.role || 'ADMIN',
+        sessionVersion: args.data.sessionVersion ?? 0,
         createdAt: now,
         updatedAt: now,
       };
       db.users.push(newUser);
       saveDbToDisk(db);
       return { ...newUser };
+    },
+
+    update: async (args: { where: any; data: any }) => {
+      const idx = db.users.findIndex((user) => matchesWhere(user, args.where, db));
+      if (idx < 0) throw new Error('User not found');
+      const current = db.users[idx];
+      const updated: MockUser = {
+        ...current,
+        ...args.data,
+        sessionVersion:
+          typeof args.data.sessionVersion === 'number'
+            ? args.data.sessionVersion
+            : args.data.sessionVersion?.increment != null
+              ? (current.sessionVersion || 0) + Number(args.data.sessionVersion.increment)
+              : current.sessionVersion || 0,
+        updatedAt: new Date(),
+      };
+      // Prisma increment style: data: { sessionVersion: { increment: 1 } }
+      if (args.data.sessionVersion && typeof args.data.sessionVersion === 'object') {
+        delete (updated as any).sessionVersion;
+        updated.sessionVersion =
+          (current.sessionVersion || 0) + Number(args.data.sessionVersion.increment || 0);
+      }
+      if (args.data.passwordHash) updated.passwordHash = args.data.passwordHash;
+      db.users[idx] = updated;
+      saveDbToDisk(db);
+      return { ...updated };
+    },
+  },
+
+  auditLog: {
+    create: async (args: { data: any }) => {
+      const entry: MockAuditLog = {
+        id: args.data.id || generateUniqueId('aud'),
+        userId: args.data.userId ?? null,
+        action: args.data.action,
+        details: args.data.details ?? null,
+        ip: args.data.ip ?? null,
+        createdAt: new Date(),
+      };
+      db.auditLogs.push(entry);
+      saveDbToDisk(db);
+      return { ...entry };
     },
   },
 

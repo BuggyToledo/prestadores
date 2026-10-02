@@ -38,3 +38,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Amostra local e relatórios de clean-data (não versionar dados reais)
+/data/amostra-providers.csv
+/reports/

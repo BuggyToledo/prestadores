@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
+import { sanitizeBannerFields } from '@/lib/sanitizeInputs';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -37,19 +38,21 @@ export async function PUT(request: Request, { params }: Params) {
     const body = await request.json();
     const { title, imageUrl, linkUrl, target, position, isActive, order } = body;
 
-    if (!title || !imageUrl) {
-      return NextResponse.json(
-        { error: 'Título do banner e imagem são obrigatórios.' },
-        { status: 400 }
-      );
+    if (!title) {
+      return NextResponse.json({ error: 'Título do banner é obrigatório.' }, { status: 400 });
+    }
+
+    const fields = sanitizeBannerFields({ imageUrl, linkUrl });
+    if (!fields.ok) {
+      return NextResponse.json({ error: fields.error }, { status: 400 });
     }
 
     const updated = await prisma.banner.update({
       where: { id },
       data: {
         title: title.trim(),
-        imageUrl: imageUrl.trim(),
-        linkUrl: linkUrl?.trim() || null,
+        imageUrl: fields.imageUrl,
+        linkUrl: fields.linkUrl,
         target: target || '_blank',
         position: position || 'HERO_TOP',
         isActive: isActive !== undefined ? Boolean(isActive) : true,

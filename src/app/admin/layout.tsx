@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
@@ -13,9 +13,9 @@ import {
   ExternalLink,
   Menu,
   X,
-  Shield,
   Image as ImageIcon,
   Database,
+  KeyRound,
 } from 'lucide-react';
 
 export default function AdminLayout({
@@ -24,7 +24,6 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const isLoginPage = pathname === '/admin/login';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminUser, setAdminUser] = useState<{ name: string; email: string } | null>(null);
@@ -32,13 +31,7 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (!isLoginPage) {
-      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
-      const headers: Record<string, string> = {};
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-      }
-
-      fetch('/api/auth/me', { headers })
+      fetch('/api/auth/me', { credentials: 'include' })
         .then((res) => {
           if (!res.ok) {
             throw new Error('Não autenticado');
@@ -55,8 +48,6 @@ export default function AdminLayout({
         })
         .catch(() => {
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('admin_user');
             window.location.href = `/admin/login?from=${encodeURIComponent(pathname)}`;
           }
         });
@@ -65,14 +56,11 @@ export default function AdminLayout({
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch (e) {
       console.error(e);
     } finally {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('admin_token');
-        localStorage.removeItem('admin_user');
-        document.cookie = 'admin_session_token=; path=/; max-age=0; SameSite=None; Secure';
         window.location.href = '/admin/login';
       }
     }
@@ -127,6 +115,12 @@ export default function AdminLayout({
       href: '/admin/banco',
       icon: Database,
       active: pathname.startsWith('/admin/banco'),
+    },
+    {
+      name: 'Alterar Senha',
+      href: '/admin/alterar-senha',
+      icon: KeyRound,
+      active: pathname.startsWith('/admin/alterar-senha'),
     },
   ];
 

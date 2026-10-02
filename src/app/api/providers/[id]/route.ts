@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
+import { sanitizeProviderContacts } from '@/lib/sanitizeInputs';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -73,6 +74,18 @@ export async function PUT(request: Request, { params }: Params) {
       );
     }
 
+    const contacts = sanitizeProviderContacts({
+      phone,
+      whatsapp,
+      website,
+      instagram,
+      logoUrl,
+      coverUrl,
+    });
+    if (!contacts.ok) {
+      return NextResponse.json({ error: contacts.error }, { status: 400 });
+    }
+
     const existing = await prisma.provider.findUnique({
       where: { id },
     });
@@ -103,11 +116,11 @@ export async function PUT(request: Request, { params }: Params) {
         name: name.trim(),
         slug,
         cnpj: cnpj?.trim() || null,
-        phone: phone?.trim() || null,
-        whatsapp: whatsapp?.trim() || null,
+        phone: contacts.data.phone,
+        whatsapp: contacts.data.whatsapp,
         email: email?.trim() || null,
-        website: website?.trim() || null,
-        instagram: instagram?.trim() || null,
+        website: contacts.data.website,
+        instagram: contacts.data.instagram,
         address: address?.trim() || null,
         neighborhood: neighborhood?.trim() || null,
         city: city.trim(),
@@ -115,8 +128,8 @@ export async function PUT(request: Request, { params }: Params) {
         zipCode: zipCode?.trim() || null,
         description: description?.trim() || null,
         services: services?.trim() || null,
-        logoUrl: logoUrl?.trim() || null,
-        coverUrl: coverUrl?.trim() || null,
+        logoUrl: contacts.data.logoUrl,
+        coverUrl: contacts.data.coverUrl,
         isFeatured: Boolean(isFeatured),
         isActive: isActive !== undefined ? Boolean(isActive) : true,
         categoryId,

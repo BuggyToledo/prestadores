@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
+import { sanitizeProviderContacts } from '@/lib/sanitizeInputs';
 import { Prisma } from '@prisma/client';
 
 // Listar prestadores com filtros avançados
@@ -16,10 +17,17 @@ export async function GET(request: Request) {
     const city = searchParams.get('cidade') || '';
     const state = searchParams.get('uf') || '';
     const featuredOnly = searchParams.get('destaque') === 'true';
-    const allStatus = searchParams.get('all') === 'true'; // Se true (Admin), retorna ativos e inativos
+    const allStatus = searchParams.get('all') === 'true'; // Admin: ativos e inativos
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '20', 10)));
     const skip = (page - 1) * limit;
+
+    if (allStatus) {
+      const session = await getSessionUser(request);
+      if (!session) {
+        return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+      }
+    }
 
     const where: Prisma.ProviderWhereInput = {};
 
@@ -155,8 +163,20 @@ export async function POST(request: Request) {
       );
     }
 
+    const contacts = sanitizeProviderContacts({
+      phone,
+      whatsapp,
+      website,
+      instagram,
+      logoUrl,
+      coverUrl,
+    });
+    if (!contacts.ok) {
+      return NextResponse.json({ error: contacts.error }, { status: 400 });
+    }
+
     // Gerar slug único
-    let baseSlug = slugify(name);
+    const baseSlug = slugify(name);
     let slug = baseSlug;
     let count = 1;
     while (await prisma.provider.findUnique({ where: { slug } })) {
@@ -169,11 +189,11 @@ export async function POST(request: Request) {
         name: name.trim(),
         slug,
         cnpj: cnpj?.trim() || null,
-        phone: phone?.trim() || null,
-        whatsapp: whatsapp?.trim() || null,
+        phone: contacts.data.phone,
+        whatsapp: contacts.data.whatsapp,
         email: email?.trim() || null,
-        website: website?.trim() || null,
-        instagram: instagram?.trim() || null,
+        website: contacts.data.website,
+        instagram: contacts.data.instagram,
         address: address?.trim() || null,
         neighborhood: neighborhood?.trim() || null,
         city: city.trim(),
@@ -181,8 +201,8 @@ export async function POST(request: Request) {
         zipCode: zipCode?.trim() || null,
         description: description?.trim() || null,
         services: services?.trim() || null,
-        logoUrl: logoUrl?.trim() || null,
-        coverUrl: coverUrl?.trim() || null,
+        logoUrl: contacts.data.logoUrl,
+        coverUrl: contacts.data.coverUrl,
         isFeatured: Boolean(isFeatured),
         isActive: isActive !== undefined ? Boolean(isActive) : true,
         categoryId,
