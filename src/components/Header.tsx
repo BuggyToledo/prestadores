@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, LayoutGrid, Landmark, Search } from 'lucide-react';
+import { BookOpen, LayoutGrid, Landmark, Search, Home } from 'lucide-react';
 
-/** Navbar pública — sem link de admin (fica no Footer). Oculta em /admin. */
+/** Navbar pública — admin só no Footer. Mobile: logo + busca. Desktop: Início, Categorias, Utilidade. */
 export function Header() {
   const pathname = usePathname() || '/';
   if (pathname.startsWith('/admin')) return null;
@@ -29,7 +29,24 @@ export function Header() {
           </div>
         </Link>
 
+        {/* Mobile: ícone de busca */}
+        <Link
+          href="/#busca"
+          className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-full text-brand-navy hover:bg-brand-amber-light md:hidden"
+          aria-label="Buscar prestadores"
+        >
+          <Search className="h-5 w-5" aria-hidden />
+        </Link>
+
+        {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex" aria-label="Navegação desktop">
+          <Link
+            href="/"
+            className="inline-flex min-h-touch items-center gap-1.5 rounded-control px-3 text-sm font-semibold text-brand-navy-mid hover:bg-brand-amber-light hover:text-brand-navy"
+          >
+            <Home className="h-4 w-4" aria-hidden />
+            Início
+          </Link>
           <Link
             href="/#categorias"
             className="inline-flex min-h-touch items-center gap-1.5 rounded-control px-3 text-sm font-semibold text-brand-navy-mid hover:bg-brand-amber-light hover:text-brand-navy"
@@ -38,18 +55,11 @@ export function Header() {
             Categorias
           </Link>
           <Link
-            href="/?focus=busca"
-            className="inline-flex min-h-touch items-center gap-1.5 rounded-control px-3 text-sm font-semibold text-brand-navy-mid hover:bg-brand-amber-light hover:text-brand-navy"
-          >
-            <Search className="h-4 w-4" aria-hidden />
-            Buscar
-          </Link>
-          <Link
             href="/utilidade-publica"
             className="inline-flex min-h-touch items-center gap-1.5 rounded-control px-3 text-sm font-semibold text-brand-navy-mid hover:bg-brand-amber-light hover:text-brand-navy"
           >
             <Landmark className="h-4 w-4" aria-hidden />
-            Utilidade pública
+            Utilidade Pública
           </Link>
         </nav>
       </div>

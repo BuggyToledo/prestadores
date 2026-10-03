@@ -5,12 +5,10 @@ PR separado. **Sem merge** até aprovação tela a tela.
 
 ## Ordem de entrega
 
-1. **Fundação** — tokens, Plus Jakarta Sans, componentes base (este PR).
-2. **3C** — detalhe do prestador `/prestador/[slug]` (referência Stitch disponível).
-3. **3A / 3B** — home e categoria/resultados **somente** quando existirem em `design-stitch/`:
-   - `design-stitch/01-home-mobile/`
-   - `design-stitch/02-resultados/`  
-   Se faltarem, **não improvisar** — avisar.
+1. **Fundação** — tokens, Plus Jakarta Sans, componentes base.
+2. **3C** — detalhe do prestador `/prestador/[slug]`.
+3. **3A** — home (brief aprovado pelo produto; pastas Stitch 01/02 ainda ausentes).
+4. **3B** — categoria/resultados — aguardando `design-stitch/02-resultados/`.
 
 ## Preview (Vercel)
 
@@ -45,8 +43,8 @@ O filtro `kind = 'prestador'` / rota `/utilidade-publica` só tem efeito complet
 
 | Tela | Status no `design-stitch/` |
 |---|---|
-| 01-home-mobile | **Ausente** — aguardando upload |
-| 02-resultados | **Ausente** — aguardando upload |
+| 01-home-mobile | Brief textual aprovado → home implementada em 3A |
+| 02-resultados | **Ausente** — aguardando upload (3B pausada) |
 | 03-detalhe | Presente (`guia_s_ndico_n_detalhes_do_prestador/screen.png`) |
 | 04 orçamento | Fora do escopo desta fase |
 | 05 admin | Fora do escopo desta fase |

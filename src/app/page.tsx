@@ -1,53 +1,52 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { SearchBar } from '@/components/SearchBar';
 import { ProviderCard } from '@/components/ProviderCard';
-import { CategoryIcon } from '@/components/CategoryIcon';
-import { BannerDisplay } from '@/components/BannerDisplay';
+import { CategoryTile } from '@/components/CategoryTile';
+import { BannerSlot } from '@/components/BannerSlot';
+import { findHomeRegion } from '@/lib/regions';
 import {
-  Sparkles,
-  Award,
-  Users,
+  MessageCircle,
   Search,
-  CheckCircle,
-  PhoneCall,
-  SlidersHorizontal,
-  MapPin,
+  Landmark,
   ArrowRight,
-  ChevronDown,
+  Users,
+  LayoutGrid,
 } from 'lucide-react';
 
 interface PageProps {
   searchParams: Promise<{
     q?: string;
     categoria?: string;
+    regiao?: string;
     cidade?: string;
-    uf?: string;
-    destaque?: string;
-    todos?: string;
+    focus?: string;
+    page?: string;
   }>;
 }
 
 export const dynamic = 'force-dynamic';
 
+const PAGE_SIZE = 6;
+
 export default async function HomePage({ searchParams }: PageProps) {
   const params = await searchParams;
   const q = params.q || '';
   const categoria = params.categoria || '';
-  const cidade = params.cidade || '';
-  const showAll = params.todos === '1';
+  const regiao = params.regiao || '';
+  const page = Math.max(1, parseInt(params.page || '1', 10) || 1);
+  const region = findHomeRegion(regiao);
+  const isFiltering = Boolean(q || categoria || regiao);
 
-  // Buscar categorias e banners ativos em paralelo
-  const [categories, banners] = await Promise.all([
+  const [categories, banners, totalProvidersCount, categoryCount] = await Promise.all([
     prisma.category.findMany({
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
+      take: 12,
       include: {
         _count: {
           select: {
-            providers: {
-              where: { isActive: true },
-            },
+            providers: { where: { isActive: true } },
           },
         },
       },
@@ -56,357 +55,317 @@ export default async function HomePage({ searchParams }: PageProps) {
       where: { isActive: true },
       orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
     }),
+    prisma.provider.count({ where: { isActive: true } }),
+    prisma.category.count(),
   ]);
 
-  // Montar filtro do Prisma para os prestadores
-  const whereFilter: any = {
+  // Só prestadores na listagem principal (utilidade → /utilidade-publica)
+  const kindFilter = {
     isActive: true,
+    OR: [{ kind: 'prestador' as const }, { kind: null }],
   };
 
+  const andParts: Record<string, unknown>[] = [];
+
   if (categoria) {
-    whereFilter.category = {
-      slug: categoria,
-    };
+    andParts.push({ category: { slug: categoria } });
   }
 
-  if (cidade) {
-    whereFilter.city = {
-      contains: cidade,
-    };
+  if (region) {
+    const neighborhoodOr = region.neighborhoods.map((n) => ({
+      neighborhood: { contains: n },
+    }));
+    const cityOr =
+      'cities' in region && region.cities
+        ? region.cities.map((c) => ({ city: { contains: c } }))
+        : [];
+    andParts.push({ OR: [...neighborhoodOr, ...cityOr] });
   }
 
   if (q.trim()) {
     const term = q.trim();
-    whereFilter.OR = [
-      { name: { contains: term } },
-      { description: { contains: term } },
-      { services: { contains: term } },
-      { neighborhood: { contains: term } },
-      { city: { contains: term } },
-      { category: { name: { contains: term } } },
-      { subcategory: { name: { contains: term } } },
-    ];
+    andParts.push({
+      OR: [
+        { name: { contains: term } },
+        { description: { contains: term } },
+        { services: { contains: term } },
+        { neighborhood: { contains: term } },
+        { city: { contains: term } },
+        { category: { name: { contains: term } } },
+      ],
+    });
   }
 
-  // Buscar prestadores ativos
-  const [allFetchedProviders, totalProvidersCount] = await Promise.all([
-    prisma.provider.findMany({
-      where: whereFilter,
-      include: {
-        category: true,
-        subcategory: true,
-      },
-      orderBy: [
-        { isFeatured: 'desc' },
-        { name: 'asc' },
-      ],
-    }),
-    prisma.provider.count({ where: { isActive: true } }),
-  ]);
+  const where =
+    andParts.length > 0
+      ? { AND: [kindFilter, ...andParts] }
+      : kindFilter;
 
-  const activeCategoryObject = categories.find((c) => c.slug === categoria);
-  const isFiltering = Boolean(q || categoria || cidade);
+  let featuredProviders: Awaited<ReturnType<typeof prisma.provider.findMany>> = [];
+  let listProviders: Awaited<ReturnType<typeof prisma.provider.findMany>> = [];
+  let listTotal = 0;
 
-  // Sorteio/Embaralhamento controlado: Mantém destaques no topo e sorteia a ordem dos prestadores
-  const featured = allFetchedProviders.filter((p) => p.isFeatured);
-  const nonFeatured = allFetchedProviders.filter((p) => !p.isFeatured);
+  try {
+    const skip = isFiltering ? (page - 1) * PAGE_SIZE : 0;
+    const take = PAGE_SIZE;
 
-  // Função para embaralhar mantendo determinismo seguro
-  const shuffle = <T,>(arr: T[]): T[] => {
-    const copy = [...arr];
-    for (let i = copy.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [copy[i], copy[j]] = [copy[j], copy[i]];
+    if (!isFiltering) {
+      // Home: até 6 em destaque (featured primeiro), só kind prestador
+      featuredProviders = await prisma.provider.findMany({
+        where: { ...kindFilter, isFeatured: true } as never,
+        include: { category: true, subcategory: true },
+        orderBy: [{ name: 'asc' }],
+        take: PAGE_SIZE,
+      });
+      if (featuredProviders.length < PAGE_SIZE) {
+        const extra = await prisma.provider.findMany({
+          where: {
+            ...kindFilter,
+            isFeatured: false,
+            id: { notIn: featuredProviders.map((p) => p.id) },
+          } as never,
+          include: { category: true, subcategory: true },
+          orderBy: [{ name: 'asc' }],
+          take: PAGE_SIZE - featuredProviders.length,
+        });
+        featuredProviders = [...featuredProviders, ...extra];
+      }
+    } else {
+      [listTotal, listProviders] = await Promise.all([
+        prisma.provider.count({ where: where as never }),
+        prisma.provider.findMany({
+          where: where as never,
+          include: { category: true, subcategory: true },
+          orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
+          skip,
+          take,
+        }),
+      ]);
     }
-    return copy;
-  };
+  } catch {
+    // Fallback se kind ainda não existir no client antigo
+    featuredProviders = await prisma.provider.findMany({
+      where: { isActive: true, isFeatured: true },
+      include: { category: true, subcategory: true },
+      orderBy: [{ name: 'asc' }],
+      take: PAGE_SIZE,
+    });
+    if (featuredProviders.length < PAGE_SIZE) {
+      const extra = await prisma.provider.findMany({
+        where: {
+          isActive: true,
+          isFeatured: false,
+          id: { notIn: featuredProviders.map((p) => p.id) },
+        },
+        include: { category: true, subcategory: true },
+        orderBy: [{ name: 'asc' }],
+        take: PAGE_SIZE - featuredProviders.length,
+      });
+      featuredProviders = [...featuredProviders, ...extra];
+    }
+  }
 
-  // Se estiver filtrando ou visualizando todos, preserva a ordem de relevância;
-  // Na visualização inicial da Home, sorteia a amostra para dar visibilidade a todos os profissionais
-  const providers = isFiltering || showAll
-    ? allFetchedProviders
-    : [...shuffle(featured), ...shuffle(nonFeatured)];
-
-  // Divisão dos lotes: Primeiros 9 prestadores -> Banner do Meio -> Próximos 6 prestadores
-  const firstBatch = providers.slice(0, 9);
-  const secondBatch = showAll || isFiltering
-    ? providers.slice(9)
-    : providers.slice(9, 15);
-
-  const remainingCount = providers.length - (firstBatch.length + secondBatch.length);
+  const displayProviders = isFiltering ? listProviders : featuredProviders;
+  const totalPages = isFiltering ? Math.max(1, Math.ceil(listTotal / PAGE_SIZE)) : 1;
+  const metricsProviders = totalProvidersCount.toLocaleString('pt-BR');
 
   return (
-    <div className="min-h-screen">
-      {/* 1. HERO SECTION */}
-      <section className="bg-gradient-to-b from-amber-400 via-amber-300 to-amber-100/40 pt-16 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* Elementos visuais de fundo */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-yellow-200/50 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 bg-slate-950/10 backdrop-blur-md text-slate-900 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-6 border border-slate-900/10">
-            <Award className="w-4 h-4 text-amber-900" />
-            <span>O Maior Catálogo de Especialistas da Região</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-950 tracking-tight leading-[1.15] mb-6">
-            Encontre os Melhores <br className="hidden sm:inline" />
-            <span className="text-amber-900 bg-amber-400/40 px-3 py-1 rounded-xl inline-block mt-1">
-              Prestadores de Serviços
-            </span>
+    <div className="min-h-screen bg-brand-surface">
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-brand-amber via-brand-amber/80 to-brand-surface px-4 pb-8 pt-10 sm:px-6 sm:pb-12 sm:pt-14">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-brand-amber-light/60 blur-3xl" />
+        <div className="relative z-10 mx-auto max-w-shell text-center">
+          <h1 className="text-3xl font-extrabold tracking-tight text-brand-navy sm:text-4xl md:text-5xl">
+            Prestadores para o seu condomínio
           </h1>
-
-          <p className="text-base sm:text-xl text-slate-800 max-w-2xl mx-auto font-medium leading-relaxed mb-8">
-            Eletricistas, encanadores, mecânicos, pedreiros, chaveiros e muito mais. Contato direto via WhatsApp sem intermediários.
+          <p className="mx-auto mt-3 max-w-xl text-base font-medium text-brand-navy-mid sm:text-lg">
+            Contato direto no WhatsApp
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm font-semibold text-slate-800">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4 text-emerald-700" />
-              <span>{totalProvidersCount} Profissionais Cadastrados</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4 text-emerald-700" />
-              <span>{categories.length} Categorias Disponíveis</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4 text-emerald-700" />
-              <span>Contato Direto no WhatsApp</span>
-            </div>
+          <div className="mx-auto mt-8 max-w-4xl text-left">
+            <Suspense fallback={null}>
+              <SearchBar
+                categories={categories}
+                initialSearch={q}
+                initialCategory={categoria}
+                initialRegion={regiao}
+              />
+            </Suspense>
           </div>
         </div>
       </section>
 
-      {/* 2. BARRA DE BUSCA FLUTUANTE */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SearchBar
-          categories={categories}
-          initialSearch={q}
-          initialCategory={categoria}
-          initialCity={cidade}
-        />
-      </div>
-
-      {/* BANNER TOPO PRINCIPAL (HERO_TOP) */}
-      <BannerDisplay
-        banners={banners}
-        position="HERO_TOP"
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6"
-      />
-
-      {/* 3. CATEGORIAS EM DESTAQUE */}
-      <section id="categorias" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-              <span>Categorias Populares</span>
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Navegue pelas áreas de serviços mais solicitadas
-            </p>
-          </div>
-
-          {categoria && (
-            <Link
-              href="/#categorias"
-              className="text-xs sm:text-sm font-semibold text-amber-700 hover:text-amber-800 bg-amber-100/60 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              Limpar Categoria Selecionada
-            </Link>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
-          {categories.map((cat, idx) => {
-            const isSelected = categoria === cat.slug;
-            return (
-              <Link
-                key={`${cat.id}-${idx}`}
-                href={isSelected ? '/' : `/?categoria=${cat.slug}#prestadores`}
-                className={`group p-4 sm:p-5 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
-                  isSelected
-                    ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-lg ring-2 ring-amber-400'
-                    : 'bg-white hover:bg-amber-50/50 border-slate-200 hover:border-amber-300 hover:shadow-md'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                      isSelected
-                        ? 'bg-slate-950 text-amber-400'
-                        : 'bg-amber-100 text-amber-800 group-hover:bg-amber-200'
-                    }`}
-                  >
-                    <CategoryIcon name={cat.icon} className="w-6 h-6" />
-                  </div>
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                      isSelected
-                        ? 'bg-slate-950/20 text-slate-950'
-                        : 'bg-slate-100 text-slate-600 group-hover:bg-amber-200/60 group-hover:text-amber-900'
-                    }`}
-                  >
-                    {cat._count.providers}
-                  </span>
-                </div>
-
-                <div>
-                  <h3
-                    className={`font-bold text-sm sm:text-base leading-snug mb-1 ${
-                      isSelected ? 'text-slate-950' : 'text-slate-900 group-hover:text-amber-700'
-                    }`}
-                  >
-                    {cat.name}
-                  </h3>
-                  {cat.description && (
-                    <p
-                      className={`text-xs line-clamp-1 ${
-                        isSelected ? 'text-slate-800' : 'text-slate-500'
-                      }`}
-                    >
-                      {cat.description}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
+      {/* Metrics */}
+      <section className="border-b border-brand-border bg-brand-card" aria-label="Números do catálogo">
+        <div className="mx-auto flex max-w-shell flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-3 text-center text-xs font-semibold text-brand-navy-mid sm:text-sm">
+          <span className="inline-flex items-center gap-1.5">
+            <Users className="h-4 w-4 text-brand-amber-dark" aria-hidden />
+            {metricsProviders} cadastrados
+          </span>
+          <span className="text-brand-border" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <LayoutGrid className="h-4 w-4 text-brand-amber-dark" aria-hidden />
+            {categoryCount} categorias
+          </span>
+          <span className="text-brand-border" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <MessageCircle className="h-4 w-4 text-brand-green" aria-hidden />
+            Contato direto no WhatsApp
+          </span>
         </div>
       </section>
 
-      {/* 4. LISTAGEM DE PRESTADORES - PRIMEIRO LOTE (9 PRESTADORES) */}
-      <section id="prestadores" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-200">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-                {activeCategoryObject ? activeCategoryObject.name : 'Prestadores Recomendados'}
+      <div className="mx-auto max-w-shell space-y-12 px-4 py-8 sm:px-6 sm:py-12">
+        {/* Banner opcional — some se não houver ativo */}
+        <BannerSlot banners={banners} position="HERO_TOP" />
+
+        {/* Categorias bento */}
+        <section id="categorias" aria-labelledby="categorias-heading">
+          <div className="mb-5 flex items-end justify-between gap-3">
+            <div>
+              <h2 id="categorias-heading" className="text-xl font-extrabold text-brand-navy sm:text-2xl">
+                Categorias
               </h2>
-              <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
-                {providers.length} disponíveis
-              </span>
+              <p className="mt-1 text-sm text-brand-muted">
+                Escolha o tipo de serviço para o condomínio
+              </p>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              {isFiltering
-                ? `Exibindo resultados filtrados por: ${[
-                    q && `termo "${q}"`,
-                    categoria && `categoria "${activeCategoryObject?.name || categoria}"`,
-                    cidade && `cidade "${cidade}"`,
-                  ]
-                    .filter(Boolean)
-                    .join(', ')}`
-                : 'Profissionais e empresas cadastrados prontos para atender seu condomínio ou residência'}
-            </p>
           </div>
-
-          {isFiltering && (
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors self-start sm:self-auto"
-            >
-              Limpar todos os filtros
-            </Link>
-          )}
-        </div>
-
-        {/* Primeiro Grid: 9 Prestadores */}
-        {firstBatch.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {firstBatch.map((provider) => (
-              <ProviderCard key={provider.id} provider={provider} />
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+            {categories.map((cat) => (
+              <CategoryTile
+                key={cat.id}
+                name={cat.name}
+                slug={cat.slug}
+                icon={cat.icon}
+                count={cat._count.providers}
+                selected={categoria === cat.slug}
+                href={
+                  categoria === cat.slug
+                    ? '/#categorias'
+                    : `/?categoria=${cat.slug}#prestadores`
+                }
+              />
             ))}
           </div>
-        ) : (
-          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center max-w-xl mx-auto my-8">
-            <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8" />
+        </section>
+
+        {/* Prestadores */}
+        <section id="prestadores" aria-labelledby="prestadores-heading">
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 id="prestadores-heading" className="text-xl font-extrabold text-brand-navy sm:text-2xl">
+                {isFiltering ? 'Resultados da busca' : 'Prestadores em destaque'}
+              </h2>
+              <p className="mt-1 text-sm text-brand-muted">
+                {isFiltering
+                  ? `${listTotal.toLocaleString('pt-BR')} cadastrado${listTotal === 1 ? '' : 's'} encontrado${listTotal === 1 ? '' : 's'}`
+                  : 'Contato direto — sem intermediação'}
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Nenhum prestador encontrado</h3>
-            <p className="text-sm text-slate-600 mb-6">
-              Não encontramos nenhum profissional correspondente aos filtros selecionados. Tente buscar por outros termos ou verifique todas as categorias.
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm transition-all"
-            >
-              Ver todos os profissionais
-            </Link>
-          </div>
-        )}
-      </section>
-
-      {/* BANNER INTERMEDIÁRIO (MIDDLE) - EXIBIDO ENTRE OS DOIS LOTES */}
-      <BannerDisplay
-        banners={banners}
-        position="MIDDLE"
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
-      />
-
-      {/* 5. SEGUNDO LOTE DE PRESTADORES (+ 6 PRESTADORES) */}
-      {secondBatch.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-          <div className="mb-6 flex items-center justify-between">
-            <h3 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Users className="w-5 h-5 text-amber-600" />
-              <span>Mais Opções de Especialistas</span>
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {secondBatch.map((provider) => (
-              <ProviderCard key={provider.id} provider={provider} />
-            ))}
-          </div>
-
-          {/* Botão Ver Todos / Expandir Catálogo */}
-          {!showAll && !isFiltering && remainingCount > 0 && (
-            <div className="mt-10 text-center">
+            {isFiltering ? (
               <Link
-                href="/?todos=1#prestadores"
-                className="inline-flex items-center gap-2 bg-white hover:bg-amber-50 text-slate-900 font-bold text-sm px-8 py-4 rounded-2xl border-2 border-amber-400/80 shadow-md hover:shadow-lg transition-all"
+                href="/"
+                className="text-sm font-bold text-brand-amber-dark hover:underline"
               >
-                <span>Ver Todos os {totalProvidersCount} Prestadores Cadastrados</span>
-                <ChevronDown className="w-4 h-4 text-amber-600" />
+                Limpar filtros
+              </Link>
+            ) : null}
+          </div>
+
+          {displayProviders.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {displayProviders.map((provider) => (
+                <ProviderCard
+                  key={provider.id}
+                  provider={provider as never}
+                  forceInitials
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-card border border-dashed border-brand-border bg-brand-card p-10 text-center">
+              <Search className="mx-auto h-8 w-8 text-brand-amber-dark" aria-hidden />
+              <h3 className="mt-3 text-lg font-bold text-brand-navy">Nenhum prestador encontrado</h3>
+              <p className="mt-1 text-sm text-brand-muted">
+                Ajuste a busca, categoria ou região e tente de novo.
+              </p>
+              <Link
+                href="/"
+                className="mt-4 inline-flex min-h-touch items-center justify-center rounded-control bg-brand-amber px-4 text-sm font-bold text-brand-navy"
+              >
+                Ver destaques
               </Link>
             </div>
           )}
+
+          {isFiltering && totalPages > 1 ? (
+            <nav className="mt-8 flex items-center justify-center gap-2" aria-label="Paginação">
+              {page > 1 ? (
+                <Link
+                  href={`/?${new URLSearchParams({
+                    ...(q ? { q } : {}),
+                    ...(categoria ? { categoria } : {}),
+                    ...(regiao ? { regiao } : {}),
+                    page: String(page - 1),
+                  }).toString()}#prestadores`}
+                  className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-control border border-brand-border bg-brand-card px-4 text-sm font-bold text-brand-navy"
+                >
+                  Anterior
+                </Link>
+              ) : null}
+              <span className="text-sm text-brand-muted">
+                Página {page} de {totalPages}
+              </span>
+              {page < totalPages ? (
+                <Link
+                  href={`/?${new URLSearchParams({
+                    ...(q ? { q } : {}),
+                    ...(categoria ? { categoria } : {}),
+                    ...(regiao ? { regiao } : {}),
+                    page: String(page + 1),
+                  }).toString()}#prestadores`}
+                  className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-control border border-brand-border bg-brand-card px-4 text-sm font-bold text-brand-navy"
+                >
+                  Próxima
+                </Link>
+              ) : null}
+            </nav>
+          ) : null}
         </section>
-      )}
 
-      {/* BANNER RODAPÉ (FOOTER) */}
-      <BannerDisplay
-        banners={banners}
-        position="FOOTER"
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
-      />
+        <BannerSlot banners={banners} position="MIDDLE" />
 
-      {/* 6. BANNER CADASTRE SEU NEGÓCIO */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-8 sm:p-12 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden border border-slate-700">
-          <div className="space-y-4 max-w-xl">
-            <div className="inline-flex items-center gap-2 bg-amber-400/20 text-amber-300 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border border-amber-400/30">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Área Administrativa</span>
+        {/* Utilidade pública */}
+        <section aria-labelledby="utilidade-heading">
+          <Link
+            href="/utilidade-publica"
+            className="group flex flex-col gap-4 rounded-card border border-brand-border bg-brand-navy p-6 text-white shadow-card transition-shadow hover:shadow-lift sm:flex-row sm:items-center sm:justify-between sm:p-8"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-card bg-brand-amber text-brand-navy">
+                <Landmark className="h-7 w-7" aria-hidden />
+              </div>
+              <div>
+                <h2 id="utilidade-heading" className="text-xl font-extrabold">
+                  Utilidade Pública
+                </h2>
+                <p className="mt-1 max-w-xl text-sm text-slate-300">
+                  Telefones e contatos de órgãos públicos, ouvidorias e concessionárias cadastrados no guia.
+                </p>
+              </div>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
-              Gerencie e cadastre prestadores de serviços
-            </h2>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              Acesse o painel administrativo protegido por senha para cadastrar novas empresas, criar categorias, atualizar contatos e dados de CNPJ.
-            </p>
-          </div>
-
-          <div className="shrink-0 flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-            <Link
-              href="/admin/login"
-              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black text-sm text-center shadow-lg transition-all flex items-center justify-center gap-2"
-            >
-              <span>Acessar Painel de Admin</span>
-              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-            </Link>
-          </div>
-        </div>
-      </section>
+            <span className="inline-flex min-h-touch items-center gap-2 self-start rounded-control bg-brand-amber px-4 text-sm font-bold text-brand-navy group-hover:bg-brand-amber-light sm:self-center">
+              Ver utilidade pública
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </span>
+          </Link>
+        </section>
+      </div>
     </div>
   );
 }

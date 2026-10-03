@@ -100,9 +100,9 @@ export function Footer() {
           {/* Link discreto de admin — só no rodapé */}
           <Link
             href="/admin"
-            className="text-[11px] text-slate-600 underline-offset-2 hover:text-slate-400 hover:underline"
+            className="text-[11px] text-slate-600 underline-offset-2 hover:text-slate-500 hover:underline"
           >
-            Administração
+            Área administrativa
           </Link>
         </div>
       </div>
