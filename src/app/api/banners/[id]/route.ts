@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { revalidateCatalog } from '@/lib/catalogCache';
 import { getSessionUser } from '@/lib/auth';
 import { sanitizeBannerFields } from '@/lib/sanitizeInputs';
 
@@ -60,6 +61,7 @@ export async function PUT(request: Request, { params }: Params) {
       },
     });
 
+    revalidateCatalog('banners');
     return NextResponse.json({ success: true, banner: updated });
   } catch (error) {
     console.error('Erro ao atualizar banner:', error);
@@ -81,6 +83,7 @@ export async function DELETE(request: Request, { params }: Params) {
       where: { id },
     });
 
+    revalidateCatalog('banners');
     return NextResponse.json({ success: true, message: 'Banner excluído com sucesso.' });
   } catch (error) {
     console.error('Erro ao excluir banner:', error);

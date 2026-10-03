@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { revalidateCatalog } from '@/lib/catalogCache';
 import { getSessionUser } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
 import { sanitizeProviderContacts } from '@/lib/sanitizeInputs';
@@ -214,6 +215,7 @@ export async function POST(request: Request) {
       },
     });
 
+    revalidateCatalog('providers');
     return NextResponse.json({ success: true, provider }, { status: 201 });
   } catch (error) {
     console.error('Erro ao cadastrar prestador:', error);

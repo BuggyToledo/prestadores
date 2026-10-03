@@ -15,6 +15,8 @@ type Props = {
   categorySlug: string;
   /** Só regiões com prestadores nesta categoria (ids de HOME_REGIONS). */
   availableRegionIds?: readonly HomeRegionId[] | readonly string[];
+  /** false quando cobertura de localização &lt; limiar (esconde seletor). */
+  showRegionFilter?: boolean;
   className?: string;
 };
 
@@ -23,7 +25,12 @@ type Props = {
  * Mobile: barra compacta (busca + "Filtros") + bottom sheet — libera ~69% da viewport
  * em 360×640 (header 64 + sticky ~72 + BottomNav ~64).
  */
-export function CategoryFilters({ categorySlug, availableRegionIds, className }: Props) {
+export function CategoryFilters({
+  categorySlug,
+  availableRegionIds,
+  showRegionFilter = true,
+  className,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -59,9 +66,9 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
     };
   }, [sheetOpen]);
 
-  const regionOptions = HOME_REGIONS.filter((r) =>
-    availableRegionIds ? availableRegionIds.includes(r.id) : true
-  );
+  const regionOptions = showRegionFilter
+    ? HOME_REGIONS.filter((r) => (availableRegionIds ? availableRegionIds.includes(r.id) : true))
+    : [];
 
   const pushParams = (next: {
     q?: string;
@@ -114,7 +121,7 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
   if (q0) {
     chips.push({ key: 'q', label: `Busca: ${q0}`, removeLabel: `Remover filtro ${q0}` });
   }
-  if (regiao0) {
+  if (regiao0 && showRegionFilter) {
     const regionLabel = HOME_REGIONS.find((r) => r.id === regiao0)?.label || regiao0;
     chips.push({
       key: 'regiao',
@@ -197,7 +204,7 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
         role="search"
         aria-label={`Filtrar ${categorySlug}`}
       >
-        <div className="relative col-span-5">
+        <div className={showRegionFilter ? 'relative col-span-5' : 'relative col-span-7'}>
           <label htmlFor="cat-q" className="sr-only">
             Buscar nesta categoria
           </label>
@@ -215,31 +222,33 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
           />
         </div>
 
-        <div className="relative col-span-3">
-          <label htmlFor="cat-regiao" className="sr-only">
-            Bairro/Região
-          </label>
-          <MapPin
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-ink"
-            aria-hidden
-          />
-          <select
-            id="cat-regiao"
-            value={regionOptions.some((r) => r.id === regiao) ? regiao : ''}
-            onChange={(e) => {
-              setRegiao(e.target.value);
-              pushParams({ q, regiao: e.target.value, ordenacao: sort });
-            }}
-            className="min-h-touch w-full appearance-none rounded-control border border-brand-border bg-brand-surface py-2.5 pl-10 pr-8 text-sm font-medium text-brand-navy focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber"
-          >
-            <option value="">Bairro/Região</option>
-            {regionOptions.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {showRegionFilter ? (
+          <div className="relative col-span-3">
+            <label htmlFor="cat-regiao" className="sr-only">
+              Bairro/Região
+            </label>
+            <MapPin
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-ink"
+              aria-hidden
+            />
+            <select
+              id="cat-regiao"
+              value={regionOptions.some((r) => r.id === regiao) ? regiao : ''}
+              onChange={(e) => {
+                setRegiao(e.target.value);
+                pushParams({ q, regiao: e.target.value, ordenacao: sort });
+              }}
+              className="min-h-touch w-full appearance-none rounded-control border border-brand-border bg-brand-surface py-2.5 pl-10 pr-8 text-sm font-medium text-brand-navy focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber"
+            >
+              <option value="">Bairro/Região</option>
+              {regionOptions.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
         <div className="relative col-span-2">
           <label htmlFor="cat-sort" className="sr-only">
@@ -338,30 +347,32 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label htmlFor="sheet-regiao" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-brand-muted">
-                  Bairro/Região
-                </label>
-                <div className="relative">
-                  <MapPin
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-ink"
-                    aria-hidden
-                  />
-                  <select
-                    id="sheet-regiao"
-                    value={regionOptions.some((r) => r.id === regiao) ? regiao : ''}
-                    onChange={(e) => setRegiao(e.target.value)}
-                    className="min-h-touch w-full appearance-none rounded-control border border-brand-border bg-brand-surface py-2.5 pl-10 pr-8 text-sm font-medium text-brand-navy focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber"
-                  >
-                    <option value="">Todas as regiões</option>
-                    {regionOptions.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
+              {showRegionFilter ? (
+                <div>
+                  <label htmlFor="sheet-regiao" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-brand-muted">
+                    Bairro/Região
+                  </label>
+                  <div className="relative">
+                    <MapPin
+                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-ink"
+                      aria-hidden
+                    />
+                    <select
+                      id="sheet-regiao"
+                      value={regionOptions.some((r) => r.id === regiao) ? regiao : ''}
+                      onChange={(e) => setRegiao(e.target.value)}
+                      className="min-h-touch w-full appearance-none rounded-control border border-brand-border bg-brand-surface py-2.5 pl-10 pr-8 text-sm font-medium text-brand-navy focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber"
+                    >
+                      <option value="">Todas as regiões</option>
+                      {regionOptions.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
               <div>
                 <label htmlFor="sheet-sort" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-brand-muted">

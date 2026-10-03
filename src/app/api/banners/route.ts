@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { revalidateCatalog } from '@/lib/catalogCache';
 import { getSessionUser } from '@/lib/auth';
 import { sanitizeBannerFields } from '@/lib/sanitizeInputs';
 
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
       },
     });
 
+    revalidateCatalog('banners');
     return NextResponse.json({ success: true, banner }, { status: 201 });
   } catch (error) {
     console.error('Erro ao criar banner:', error);

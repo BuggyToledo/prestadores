@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { revalidateCatalog } from '@/lib/catalogCache';
 import { getSessionUser } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
 
@@ -72,6 +73,7 @@ export async function PUT(request: Request, { params }: Params) {
       },
     });
 
+    revalidateCatalog('categories', 'providers');
     return NextResponse.json({ success: true, category: updated });
   } catch (error) {
     console.error('Erro ao atualizar categoria:', error);
@@ -105,6 +107,7 @@ export async function DELETE(request: Request, { params }: Params) {
       where: { id },
     });
 
+    revalidateCatalog('categories', 'providers');
     return NextResponse.json({ success: true, message: 'Categoria excluída com sucesso.' });
   } catch (error) {
     console.error('Erro ao excluir categoria:', error);

@@ -5,6 +5,7 @@ import { findDuplicatePhones } from './duplicates';
 import { normalizePhoneBr } from '@/lib/validation';
 import type { CleanProviderInput, ReviewRow } from './types';
 import { slugify } from '@/lib/utils';
+import { suggestCityFromNeighborhoodAndDdd } from '@/lib/regions';
 
 function pushChange(
   rows: ReviewRow[],
@@ -97,6 +98,38 @@ export function buildReviewRows(providers: CleanProviderInput[]): ReviewRow[] {
         confianca: extracted.confidence,
         acao_sugerida: 'set_neighborhood',
       });
+    }
+
+    // Inferência: bairro na lista RJ + DDD 21/22/24 + city vazia → Rio / Niterói
+    {
+      const inferred = suggestCityFromNeighborhoodAndDdd({
+        neighborhood: p.neighborhood || (extracted.matched ? extracted.neighborhood : null),
+        city: p.city,
+        phone: p.phone,
+        whatsapp: p.whatsapp,
+      });
+      if (inferred && !p.city) {
+        pushChange(rows, {
+          id: p.id,
+          campo: 'city',
+          valor_antigo: p.city || '',
+          valor_novo: inferred.city,
+          motivo: 'Cidade inferida (bairro no mapa RJ + DDD 21/22/24)',
+          confianca: 'media',
+          acao_sugerida: 'set_city',
+        });
+        if (!p.state) {
+          pushChange(rows, {
+            id: p.id,
+            campo: 'state',
+            valor_antigo: p.state || '',
+            valor_novo: inferred.state,
+            motivo: 'UF inferida junto com a cidade (DDD RJ)',
+            confianca: 'media',
+            acao_sugerida: 'set_state',
+          });
+        }
+      }
     }
 
     // Telefones

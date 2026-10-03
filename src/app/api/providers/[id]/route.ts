@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { revalidateCatalog } from '@/lib/catalogCache';
 import { getSessionUser } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
 import { sanitizeProviderContacts } from '@/lib/sanitizeInputs';
@@ -141,6 +142,7 @@ export async function PUT(request: Request, { params }: Params) {
       },
     });
 
+    revalidateCatalog('providers');
     return NextResponse.json({ success: true, provider: updated });
   } catch (error) {
     console.error('Erro ao atualizar prestador:', error);
@@ -162,6 +164,7 @@ export async function DELETE(request: Request, { params }: Params) {
       where: { id },
     });
 
+    revalidateCatalog('providers');
     return NextResponse.json({ success: true, message: 'Prestador excluído com sucesso.' });
   } catch (error) {
     console.error('Erro ao excluir prestador:', error);

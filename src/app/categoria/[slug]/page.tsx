@@ -8,9 +8,16 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { CategoryFilters } from '@/components/CategoryFilters';
 import { SponsoredInlineCard } from '@/components/SponsoredInlineCard';
 import {
+  getCategoryBySlug,
+  getCachedCategoryLocations,
+  getCachedMiddleBanner,
+} from '@/lib/catalogCache';
+import {
   findHomeRegion,
   regionFilterOr,
   regionsPresentInLocations,
+  computeLocationCoverage,
+  shouldShowRegionFilter,
   type HomeRegionId,
 } from '@/lib/regions';
 import { ArrowLeft, Search } from 'lucide-react';
@@ -28,9 +35,7 @@ interface PageProps {
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 12;
-/** Teto de cards por renderização (“Carregar mais” não ultrapassa). */
 const MAX_TAKE = 200;
-/** Inserir publicidade após o N-ésimo card (1-based), só se houver banner ativo. */
 const SPONSOR_AFTER = 3;
 
 const kindFilter = { kind: { not: 'utilidade_publica' as const } };
@@ -38,10 +43,8 @@ const kindFilter = { kind: { not: 'utilidade_publica' as const } };
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const sp = await searchParams;
-  const category = await prisma.category.findUnique({
-    where: { slug },
-    select: { name: true, description: true },
-  });
+  // Mesma consulta que a page via React cache() — sem query duplicada na request
+  const category = await getCategoryBySlug(slug);
 
   if (!category) {
     return { title: 'Categoria não encontrada' };
@@ -50,7 +53,6 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const hasVariant = Boolean(
     (sp.q && sp.q.trim()) || sp.regiao || (sp.ordenacao && sp.ordenacao !== 'nome') || sp.mais
   );
-  const canonicalPath = `/categoria/${slug}`;
   const description =
     (category.description && category.description.trim()) ||
     `Encontre prestadores de ${category.name} cadastrados para síndicos no Guia Síndico Né! Contato direto no WhatsApp.`;
@@ -62,12 +64,8 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
       title: `${category.name} | Guia Síndico Né!`,
       description,
     },
-    alternates: {
-      canonical: canonicalPath,
-    },
-    robots: hasVariant
-      ? { index: false, follow: true }
-      : { index: true, follow: true },
+    alternates: { canonical: `/categoria/${slug}` },
+    robots: hasVariant ? { index: false, follow: true } : { index: true, follow: true },
   };
 }
 
@@ -82,23 +80,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const capped = requested > MAX_TAKE;
   const region = findHomeRegion(regiao);
 
-  const category = await prisma.category.findUnique({
-    where: { slug },
-    include: {
-      subcategories: {
-        orderBy: [{ order: 'asc' }, { name: 'asc' }],
-      },
-      _count: {
-        select: { providers: { where: { isActive: true } } },
-      },
-    },
-  });
+  const category = await getCategoryBySlug(slug);
+  if (!category) notFound();
 
-  if (!category) {
-    notFound();
-  }
-
-  // Exclui utilidade_publica; kind ausente/null/prestador entram
   const andParts: Record<string, unknown>[] = [
     { isActive: true },
     { categoryId: category.id },
@@ -123,7 +107,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   }
 
   const where = { AND: andParts };
-  // Ordenação estável: desempate por id evita repetição/saltos no "Carregar mais"
   const orderBy =
     ordenacao === 'recentes'
       ? [{ createdAt: 'desc' as const }, { id: 'asc' as const }]
@@ -131,31 +114,20 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   let providers: Awaited<ReturnType<typeof prisma.provider.findMany>> = [];
   let total = 0;
-  let banners: Awaited<ReturnType<typeof prisma.banner.findMany>> = [];
-  let locationRows: Array<{ neighborhood: string | null; city: string; state: string }> = [];
+
+  const [locationRows, banners] = await Promise.all([
+    getCachedCategoryLocations(category.id),
+    getCachedMiddleBanner(),
+  ]);
 
   try {
-    [total, providers, banners, locationRows] = await Promise.all([
+    [total, providers] = await Promise.all([
       prisma.provider.count({ where: where as never }),
       prisma.provider.findMany({
         where: where as never,
         include: { category: true, subcategory: true },
         orderBy: orderBy as never,
         take: mais,
-      }),
-      // Publicidade: só banner MIDDLE ativo com imagem. Schema sem janela de datas.
-      prisma.banner.findMany({
-        where: { isActive: true, position: 'MIDDLE' },
-        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
-        take: 1,
-      }),
-      prisma.provider.findMany({
-        where: {
-          isActive: true,
-          categoryId: category.id,
-          ...kindFilter,
-        } as never,
-        select: { neighborhood: true, city: true, state: true },
       }),
     ]);
   } catch {
@@ -170,7 +142,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         { neighborhood: { contains: q } },
       ];
     }
-    [total, providers, banners, locationRows] = await Promise.all([
+    [total, providers] = await Promise.all([
       prisma.provider.count({ where: simpleWhere as never }),
       prisma.provider.findMany({
         where: simpleWhere as never,
@@ -178,30 +150,22 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         orderBy: orderBy as never,
         take: mais,
       }),
-      prisma.banner.findMany({
-        where: { isActive: true, position: 'MIDDLE' },
-        orderBy: [{ order: 'asc' }],
-        take: 1,
-      }),
-      prisma.provider.findMany({
-        where: { isActive: true, categoryId: category.id } as never,
-        select: { neighborhood: true, city: true, state: true },
-      }),
     ]);
   }
 
   const availableRegionIds = regionsPresentInLocations(locationRows) as HomeRegionId[];
+  const coverage = computeLocationCoverage(locationRows);
+  const showRegionFilter = shouldShowRegionFilter(coverage, availableRegionIds);
 
   const countLabel = `${category._count.providers} prestador${category._count.providers === 1 ? '' : 'es'}`;
   const hasMore = providers.length < total && !capped && mais < MAX_TAKE;
   const nextMais = Math.min(MAX_TAKE, mais + PAGE_SIZE);
   const moreParams = new URLSearchParams();
   if (q) moreParams.set('q', q);
-  if (regiao) moreParams.set('regiao', regiao);
+  if (regiao && showRegionFilter) moreParams.set('regiao', regiao);
   if (ordenacao === 'recentes') moreParams.set('ordenacao', 'recentes');
   moreParams.set('mais', String(nextMais));
 
-  // Sem banner ativo + imageUrl → não renderiza nada (sem placeholder)
   const sponsor =
     banners.find((b) => b.isActive && b.position === 'MIDDLE' && Boolean(b.imageUrl)) || null;
   const insertSponsorAt = sponsor ? Math.min(SPONSOR_AFTER, providers.length) : -1;
@@ -211,14 +175,14 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       <div className="mx-auto max-w-shell px-4 pb-12 pt-4 sm:px-6 sm:pt-8">
         <Link
           href="/#categorias"
-          className="mb-4 inline-flex min-h-touch items-center gap-2 text-sm font-semibold text-brand-navy-mid hover:text-brand-amber-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber"
+          className="mb-4 inline-flex min-h-touch items-center gap-2 text-sm font-semibold text-brand-navy-mid hover:text-brand-amber-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Todas as categorias
         </Link>
 
         <header className="mb-2 flex flex-col gap-4 rounded-card border border-brand-border bg-brand-card p-5 shadow-card sm:flex-row sm:items-start sm:p-7">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-card bg-brand-amber-light text-brand-amber-dark sm:h-20 sm:w-20">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-card bg-brand-amber-light text-brand-amber-ink sm:h-20 sm:w-20">
             <CategoryIcon name={category.icon} className="h-9 w-9 sm:h-11 sm:w-11" aria-hidden />
           </div>
           <div className="min-w-0 flex-1">
@@ -241,7 +205,11 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         </header>
 
         <Suspense fallback={null}>
-          <CategoryFilters categorySlug={slug} availableRegionIds={availableRegionIds} />
+          <CategoryFilters
+            categorySlug={slug}
+            availableRegionIds={showRegionFilter ? availableRegionIds : []}
+            showRegionFilter={showRegionFilter}
+          />
         </Suspense>
 
         <div className="mt-6 mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -286,7 +254,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           </>
         ) : (
           <div className="rounded-card border border-dashed border-brand-border bg-brand-card p-10 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-amber-light text-brand-amber-dark">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-amber-light text-brand-amber-ink">
               <Search className="h-7 w-7" aria-hidden />
             </div>
             <h2 className="text-lg font-bold text-brand-navy">Nenhum prestador encontrado</h2>

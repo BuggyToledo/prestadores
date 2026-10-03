@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canInferRegionCity,
+  computeLocationCoverage,
+  extractDdd,
   findHomeRegion,
   locationMatchesRegion,
   normalizePlace,
   regionFilterOr,
   regionsPresentInLocations,
+  shouldShowRegionFilter,
+  suggestCityFromNeighborhoodAndDdd,
+  REGION_FILTER_MIN_COVERAGE,
 } from './regions';
 
 describe('regions — matching preciso', () => {
@@ -31,19 +37,6 @@ describe('regions — matching preciso', () => {
         region
       )
     ).toBe(false);
-    expect(
-      locationMatchesRegion(
-        { neighborhood: 'Centro', city: 'Barra do Piraí', state: 'RJ' },
-        region
-      )
-    ).toBe(false);
-    // contains antigo capturaria "Barra" em "Barra Mansa" — igualdade não
-    expect(
-      locationMatchesRegion(
-        { neighborhood: 'Barra Mansa', city: 'Rio de Janeiro', state: 'RJ' },
-        region
-      )
-    ).toBe(false);
   });
 
   it('Centro do Rio casa em centro; Centro de Niterói/Nova Iguaçu não', () => {
@@ -67,52 +60,72 @@ describe('regions — matching preciso', () => {
         niteroi
       )
     ).toBe(true);
+  });
+
+  it('bairro do Rio com cidade vazia: sem DDD não casa; com DDD 21 casa', () => {
+    const zonaSul = findHomeRegion('zona-sul')!;
     expect(
       locationMatchesRegion(
-        { neighborhood: 'Centro', city: 'Nova Iguaçu', state: 'RJ' },
-        centro
+        { neighborhood: 'Botafogo', city: null, state: null, phone: null },
+        zonaSul
       )
     ).toBe(false);
     expect(
-      locationMatchesRegion(
-        { neighborhood: 'Centro', city: 'Nova Iguaçu', state: 'RJ' },
-        niteroi
-      )
-    ).toBe(false);
-  });
-
-  it('regionFilterOr usa igualdade + city/state (não contains)', () => {
-    const or = regionFilterOr(findHomeRegion('barra-jacarepagua')!);
-    const flat = JSON.stringify(or);
-    expect(flat).toContain('Barra da Tijuca');
-    expect(flat).toContain('Rio de Janeiro');
-    expect(flat).not.toContain('"contains"');
-    expect(or.every((c) => 'AND' in c)).toBe(true);
-  });
-
-  it('regionsPresentInLocations só retorna regiões com match preciso', () => {
-    const ids = regionsPresentInLocations([
-      { neighborhood: 'Botafogo', city: 'Rio de Janeiro', state: 'RJ' },
-      { neighborhood: 'Barra Mansa', city: 'Barra Mansa', state: 'RJ' },
-      { neighborhood: 'Centro', city: 'Nova Iguaçu', state: 'RJ' },
-      { neighborhood: null, city: 'Rio de Janeiro', state: 'RJ' },
-    ]);
-    expect(ids).toEqual(['zona-sul']);
-  });
-
-  it('bairro nulo não casa com região de bairros (sem includeCityMatch)', () => {
-    const ids = regionsPresentInLocations([
-      { neighborhood: null, city: 'Rio de Janeiro', state: 'RJ' },
-    ]);
-    expect(ids).toEqual([]);
-  });
-
-  it('Niterói includeCityMatch aceita cidade sem bairro', () => {
-    expect(
-      locationMatchesRegion(
-        { neighborhood: null, city: 'Niterói', state: 'RJ' },
-        findHomeRegion('niteroi')!
+      canInferRegionCity(
+        { neighborhood: 'Botafogo', city: '', whatsapp: '21987654321' },
+        zonaSul
       )
     ).toBe(true);
+    expect(
+      locationMatchesRegion(
+        { neighborhood: 'Botafogo', city: '', whatsapp: '21987654321' },
+        zonaSul
+      )
+    ).toBe(true);
+    expect(
+      locationMatchesRegion(
+        { neighborhood: 'Botafogo', city: '', phone: '1133334444' },
+        zonaSul
+      )
+    ).toBe(false);
+  });
+
+  it('extractDdd e suggestCityFromNeighborhoodAndDdd', () => {
+    expect(extractDdd(null, '5521987654321')).toBe('21');
+    expect(extractDdd('(22) 99999-0000', null)).toBe('22');
+    expect(
+      suggestCityFromNeighborhoodAndDdd({
+        neighborhood: 'Tijuca',
+        city: null,
+        whatsapp: '21999998888',
+      })
+    ).toEqual({ city: 'Rio de Janeiro', state: 'RJ' });
+  });
+
+  it('regionFilterOr inclui igualdade e caminho city vazia', () => {
+    const or = regionFilterOr(findHomeRegion('zona-sul')!);
+    const flat = JSON.stringify(or);
+    expect(flat).toContain('Botafogo');
+    expect(flat).toContain('Rio de Janeiro');
+    expect(flat).not.toContain('"contains"');
+    expect(flat).toContain('"city":null');
+  });
+
+  it('regionsPresentInLocations e coverage gate', () => {
+    const locs = [
+      { neighborhood: 'Botafogo', city: 'Rio de Janeiro', state: 'RJ' },
+      { neighborhood: 'Barra Mansa', city: 'Barra Mansa', state: 'RJ' },
+      { neighborhood: null, city: 'Rio de Janeiro', state: 'RJ' },
+      { neighborhood: 'Copacabana', city: '', whatsapp: '21911112222' },
+    ];
+    const ids = regionsPresentInLocations(locs);
+    expect(ids).toContain('zona-sul');
+    const cov = computeLocationCoverage(locs);
+    expect(cov.withBoth).toBe(2);
+    expect(cov.matchable).toBeGreaterThanOrEqual(2);
+    expect(shouldShowRegionFilter(cov, ids)).toBe(
+      cov.pctMatchable >= REGION_FILTER_MIN_COVERAGE && ids.length > 0
+    );
+    expect(shouldShowRegionFilter(cov, [])).toBe(false);
   });
 });

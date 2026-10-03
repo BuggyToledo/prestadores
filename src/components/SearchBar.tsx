@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin, LayoutGrid, ArrowRight } from 'lucide-react';
-import { HOME_REGIONS } from '@/lib/regions';
+import { HOME_REGIONS, type HomeRegionId } from '@/lib/regions';
 import { cn } from '@/lib/utils';
 
 interface SearchBarProps {
@@ -11,6 +11,8 @@ interface SearchBarProps {
   initialSearch?: string;
   initialCategory?: string;
   initialRegion?: string;
+  showRegionFilter?: boolean;
+  availableRegionIds?: readonly HomeRegionId[] | readonly string[];
   id?: string;
   className?: string;
 }
@@ -20,6 +22,8 @@ export function SearchBar({
   initialSearch = '',
   initialCategory = '',
   initialRegion = '',
+  showRegionFilter = true,
+  availableRegionIds,
   id = 'busca',
   className,
 }: SearchBarProps) {
@@ -28,12 +32,16 @@ export function SearchBar({
   const [category, setCategory] = useState(initialCategory);
   const [region, setRegion] = useState(initialRegion);
 
+  const regionOptions = showRegionFilter
+    ? HOME_REGIONS.filter((r) => (availableRegionIds ? availableRegionIds.includes(r.id) : true))
+    : [];
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams();
     if (query.trim()) params.set('q', query.trim());
     if (category) params.set('categoria', category);
-    if (region) params.set('regiao', region);
+    if (showRegionFilter && region) params.set('regiao', region);
     const qs = params.toString();
     router.push(qs ? `/?${qs}#prestadores` : '/#prestadores');
   };
@@ -50,11 +58,11 @@ export function SearchBar({
       aria-label="Buscar prestadores"
     >
       <div className="grid grid-cols-1 gap-3 md:grid-cols-12 md:items-end">
-        <div className="relative md:col-span-5">
+        <div className={cn('relative', showRegionFilter ? 'md:col-span-5' : 'md:col-span-6')}>
           <label htmlFor="search-q" className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-brand-muted">
             Serviço ou empresa
           </label>
-          <div className="pointer-events-none absolute bottom-3 left-3.5 text-brand-amber-dark">
+          <div className="pointer-events-none absolute bottom-3 left-3.5 text-brand-amber-ink">
             <Search className="h-4 w-4" aria-hidden />
           </div>
           <input
@@ -67,11 +75,11 @@ export function SearchBar({
           />
         </div>
 
-        <div className="relative md:col-span-3">
+        <div className={cn('relative', showRegionFilter ? 'md:col-span-3' : 'md:col-span-4')}>
           <label htmlFor="search-cat" className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-brand-muted">
             Categoria
           </label>
-          <div className="pointer-events-none absolute bottom-3 left-3.5 text-brand-amber-dark">
+          <div className="pointer-events-none absolute bottom-3 left-3.5 text-brand-amber-ink">
             <LayoutGrid className="h-4 w-4" aria-hidden />
           </div>
           <select
@@ -89,27 +97,29 @@ export function SearchBar({
           </select>
         </div>
 
-        <div className="relative md:col-span-2">
-          <label htmlFor="search-region" className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-brand-muted">
-            Região
-          </label>
-          <div className="pointer-events-none absolute bottom-3 left-3.5 text-brand-amber-dark">
-            <MapPin className="h-4 w-4" aria-hidden />
+        {showRegionFilter ? (
+          <div className="relative md:col-span-2">
+            <label htmlFor="search-region" className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-brand-muted">
+              Região
+            </label>
+            <div className="pointer-events-none absolute bottom-3 left-3.5 text-brand-amber-ink">
+              <MapPin className="h-4 w-4" aria-hidden />
+            </div>
+            <select
+              id="search-region"
+              value={regionOptions.some((r) => r.id === region) ? region : ''}
+              onChange={(e) => setRegion(e.target.value)}
+              className="min-h-touch w-full appearance-none rounded-control border border-brand-border bg-brand-surface py-3 pl-10 pr-8 text-sm font-medium text-brand-navy focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber"
+            >
+              <option value="">Todas</option>
+              {regionOptions.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
           </div>
-          <select
-            id="search-region"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            className="min-h-touch w-full appearance-none rounded-control border border-brand-border bg-brand-surface py-3 pl-10 pr-8 text-sm font-medium text-brand-navy focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber"
-          >
-            <option value="">Todas</option>
-            {HOME_REGIONS.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        ) : null}
 
         <div className="md:col-span-2">
           <button

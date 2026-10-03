@@ -5,7 +5,20 @@ import { SearchBar } from '@/components/SearchBar';
 import { ProviderCard } from '@/components/ProviderCard';
 import { CategoryTile } from '@/components/CategoryTile';
 import { BannerSlot } from '@/components/BannerSlot';
-import { findHomeRegion, regionFilterOr } from '@/lib/regions';
+import {
+  getCachedHomeCategories,
+  getCachedActiveBanners,
+  getCachedCatalogCounts,
+  getCachedFeaturedProviders,
+} from '@/lib/catalogCache';
+import {
+  findHomeRegion,
+  regionFilterOr,
+  regionsPresentInLocations,
+  computeLocationCoverage,
+  shouldShowRegionFilter,
+  type HomeRegionId,
+} from '@/lib/regions';
 import {
   MessageCircle,
   Search,
@@ -39,30 +52,52 @@ export default async function HomePage({ searchParams }: PageProps) {
   const region = findHomeRegion(regiao);
   const isFiltering = Boolean(q || categoria || regiao);
 
-  const [categories, banners, totalProvidersCount, categoryCount] = await Promise.all([
-    prisma.category.findMany({
-      orderBy: [{ order: 'asc' }, { name: 'asc' }],
-      take: 12,
-      include: {
-        _count: {
-          select: {
-            providers: { where: { isActive: true } },
-          },
-        },
-      },
-    }),
-    prisma.banner.findMany({
-      where: { isActive: true },
-      orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
-    }),
-    prisma.provider.count({ where: { isActive: true } }),
-    prisma.category.count(),
+  const [categories, banners, counts] = await Promise.all([
+    getCachedHomeCategories(),
+    getCachedActiveBanners(),
+    getCachedCatalogCounts(),
   ]);
 
-  // Só prestadores na listagem principal (utilidade → /utilidade-publica)
+  // Cobertura global para gate do filtro de região na home
+  let homeLocations: Array<{
+    neighborhood: string | null;
+    city: string;
+    state: string;
+    phone: string | null;
+    whatsapp: string | null;
+  }> = [];
+  try {
+    homeLocations = await prisma.provider.findMany({
+      where: { isActive: true, kind: { not: 'utilidade_publica' } } as never,
+      select: {
+        neighborhood: true,
+        city: true,
+        state: true,
+        phone: true,
+        whatsapp: true,
+      },
+      take: 2000,
+    });
+  } catch {
+    homeLocations = await prisma.provider.findMany({
+      where: { isActive: true },
+      select: {
+        neighborhood: true,
+        city: true,
+        state: true,
+        phone: true,
+        whatsapp: true,
+      },
+      take: 2000,
+    });
+  }
+  const homeCoverage = computeLocationCoverage(homeLocations);
+  const homeRegionIds = regionsPresentInLocations(homeLocations) as HomeRegionId[];
+  const showRegionFilter = shouldShowRegionFilter(homeCoverage, homeRegionIds);
+
   const kindFilter = {
     isActive: true,
-    kind: { not: 'utilidade_publica' as const },
+    kind: 'prestador' as const,
   };
 
   const andParts: Record<string, unknown>[] = [];
@@ -71,7 +106,7 @@ export default async function HomePage({ searchParams }: PageProps) {
     andParts.push({ category: { slug: categoria } });
   }
 
-  if (region) {
+  if (region && showRegionFilter) {
     andParts.push({ OR: regionFilterOr(region) });
   }
 
@@ -90,9 +125,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   }
 
   const where =
-    andParts.length > 0
-      ? { AND: [kindFilter, ...andParts] }
-      : kindFilter;
+    andParts.length > 0 ? { AND: [kindFilter, ...andParts] } : kindFilter;
 
   let featuredProviders: Awaited<ReturnType<typeof prisma.provider.findMany>> = [];
   let listProviders: Awaited<ReturnType<typeof prisma.provider.findMany>> = [];
@@ -100,67 +133,35 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   try {
     const skip = isFiltering ? (page - 1) * PAGE_SIZE : 0;
-    const take = PAGE_SIZE;
 
     if (!isFiltering) {
-      // Home: até 6 em destaque (featured primeiro), só kind prestador
-      featuredProviders = await prisma.provider.findMany({
-        where: { ...kindFilter, isFeatured: true } as never,
-        include: { category: true, subcategory: true },
-        orderBy: [{ name: 'asc' }],
-        take: PAGE_SIZE,
-      });
-      if (featuredProviders.length < PAGE_SIZE) {
-        const extra = await prisma.provider.findMany({
-          where: {
-            ...kindFilter,
-            isFeatured: false,
-            id: { notIn: featuredProviders.map((p) => p.id) },
-          } as never,
-          include: { category: true, subcategory: true },
-          orderBy: [{ name: 'asc' }],
-          take: PAGE_SIZE - featuredProviders.length,
-        });
-        featuredProviders = [...featuredProviders, ...extra];
-      }
+      // Recomendados: kind = prestador (cache)
+      featuredProviders = await getCachedFeaturedProviders(PAGE_SIZE);
     } else {
       [listTotal, listProviders] = await Promise.all([
         prisma.provider.count({ where: where as never }),
         prisma.provider.findMany({
           where: where as never,
           include: { category: true, subcategory: true },
-          orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
+          orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }, { id: 'asc' }],
           skip,
-          take,
+          take: PAGE_SIZE,
         }),
       ]);
     }
   } catch {
-    // Fallback se kind ainda não existir no client antigo
+    // Fallback se kind ainda não existir
     featuredProviders = await prisma.provider.findMany({
       where: { isActive: true, isFeatured: true },
       include: { category: true, subcategory: true },
       orderBy: [{ name: 'asc' }],
       take: PAGE_SIZE,
     });
-    if (featuredProviders.length < PAGE_SIZE) {
-      const extra = await prisma.provider.findMany({
-        where: {
-          isActive: true,
-          isFeatured: false,
-          id: { notIn: featuredProviders.map((p) => p.id) },
-        },
-        include: { category: true, subcategory: true },
-        orderBy: [{ name: 'asc' }],
-        take: PAGE_SIZE - featuredProviders.length,
-      });
-      featuredProviders = [...featuredProviders, ...extra];
-    }
   }
 
   const displayProviders = isFiltering ? listProviders : featuredProviders;
   const totalPages = isFiltering ? Math.max(1, Math.ceil(listTotal / PAGE_SIZE)) : 1;
-  const metricsProviders = totalProvidersCount.toLocaleString('pt-BR');
+  const metricsProviders = counts.providers.toLocaleString('pt-BR');
 
   return (
     <div className="min-h-screen bg-brand-surface">
@@ -168,6 +169,9 @@ export default async function HomePage({ searchParams }: PageProps) {
       <section className="relative overflow-hidden bg-gradient-to-b from-brand-amber via-brand-amber/80 to-brand-surface px-4 pb-8 pt-10 sm:px-6 sm:pb-12 sm:pt-14">
         <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-brand-amber-light/60 blur-3xl" />
         <div className="relative z-10 mx-auto max-w-shell text-center">
+          <p className="mb-2 text-sm font-extrabold uppercase tracking-wider text-brand-navy">
+            Guia Síndico <span className="text-brand-amber-ink">Né!</span>
+          </p>
           <h1 className="text-3xl font-extrabold tracking-tight text-brand-navy sm:text-4xl md:text-5xl">
             Prestadores para o seu condomínio
           </h1>
@@ -181,7 +185,9 @@ export default async function HomePage({ searchParams }: PageProps) {
                 categories={categories}
                 initialSearch={q}
                 initialCategory={categoria}
-                initialRegion={regiao}
+                initialRegion={showRegionFilter ? regiao : ''}
+                showRegionFilter={showRegionFilter}
+                availableRegionIds={homeRegionIds}
               />
             </Suspense>
           </div>
@@ -192,15 +198,15 @@ export default async function HomePage({ searchParams }: PageProps) {
       <section className="border-b border-brand-border bg-brand-card" aria-label="Números do catálogo">
         <div className="mx-auto flex max-w-shell flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-3 text-center text-xs font-semibold text-brand-navy-mid sm:text-sm">
           <span className="inline-flex items-center gap-1.5">
-            <Users className="h-4 w-4 text-brand-amber-dark" aria-hidden />
+            <Users className="h-4 w-4 text-brand-amber-ink" aria-hidden />
             {metricsProviders} cadastrados
           </span>
           <span className="text-brand-border" aria-hidden>
             ·
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <LayoutGrid className="h-4 w-4 text-brand-amber-dark" aria-hidden />
-            {categoryCount} categorias
+            <LayoutGrid className="h-4 w-4 text-brand-amber-ink" aria-hidden />
+            {counts.categories} categorias
           </span>
           <span className="text-brand-border" aria-hidden>
             ·
@@ -216,7 +222,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         {/* Banner opcional — some se não houver ativo */}
         <BannerSlot banners={banners} position="HERO_TOP" />
 
-        {/* Categorias bento */}
+        {/* Categorias */}
         <section id="categorias" aria-labelledby="categorias-heading">
           <div className="mb-5 flex items-end justify-between gap-3">
             <div>
@@ -247,23 +253,23 @@ export default async function HomePage({ searchParams }: PageProps) {
           </div>
         </section>
 
-        {/* Prestadores */}
+        {/* Recomendados — só kind prestador */}
         <section id="prestadores" aria-labelledby="prestadores-heading">
           <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 id="prestadores-heading" className="text-xl font-extrabold text-brand-navy sm:text-2xl">
-                {isFiltering ? 'Resultados da busca' : 'Prestadores em destaque'}
+                {isFiltering ? 'Resultados da busca' : 'Recomendados'}
               </h2>
               <p className="mt-1 text-sm text-brand-muted">
                 {isFiltering
                   ? `${listTotal.toLocaleString('pt-BR')} cadastrado${listTotal === 1 ? '' : 's'} encontrado${listTotal === 1 ? '' : 's'}`
-                  : 'Contato direto — sem intermediação'}
+                  : 'Prestadores em destaque — contato direto, sem intermediação'}
               </p>
             </div>
             {isFiltering ? (
               <Link
                 href="/"
-                className="text-sm font-bold text-brand-amber-dark hover:underline"
+                className="text-sm font-bold text-brand-amber-ink hover:underline"
               >
                 Limpar filtros
               </Link>
@@ -282,7 +288,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             </div>
           ) : (
             <div className="rounded-card border border-dashed border-brand-border bg-brand-card p-10 text-center">
-              <Search className="mx-auto h-8 w-8 text-brand-amber-dark" aria-hidden />
+              <Search className="mx-auto h-8 w-8 text-brand-amber-ink" aria-hidden />
               <h3 className="mt-3 text-lg font-bold text-brand-navy">Nenhum prestador encontrado</h3>
               <p className="mt-1 text-sm text-brand-muted">
                 Ajuste a busca, categoria ou região e tente de novo.
@@ -291,7 +297,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                 href="/"
                 className="mt-4 inline-flex min-h-touch items-center justify-center rounded-control bg-brand-amber px-4 text-sm font-bold text-brand-navy"
               >
-                Ver destaques
+                Ver recomendados
               </Link>
             </div>
           )}
@@ -303,7 +309,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   href={`/?${new URLSearchParams({
                     ...(q ? { q } : {}),
                     ...(categoria ? { categoria } : {}),
-                    ...(regiao ? { regiao } : {}),
+                    ...(showRegionFilter && regiao ? { regiao } : {}),
                     page: String(page - 1),
                   }).toString()}#prestadores`}
                   className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-control border border-brand-border bg-brand-card px-4 text-sm font-bold text-brand-navy"
@@ -319,7 +325,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   href={`/?${new URLSearchParams({
                     ...(q ? { q } : {}),
                     ...(categoria ? { categoria } : {}),
-                    ...(regiao ? { regiao } : {}),
+                    ...(showRegionFilter && regiao ? { regiao } : {}),
                     page: String(page + 1),
                   }).toString()}#prestadores`}
                   className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-control border border-brand-border bg-brand-card px-4 text-sm font-bold text-brand-navy"
@@ -333,7 +339,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
         <BannerSlot banners={banners} position="MIDDLE" />
 
-        {/* Utilidade pública */}
+        {/* Utilidade pública — seção própria */}
         <section aria-labelledby="utilidade-heading">
           <Link
             href="/utilidade-publica"

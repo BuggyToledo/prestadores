@@ -7,8 +7,8 @@ PR separado. **Sem merge** até aprovação tela a tela.
 
 1. **Fundação** — tokens, Plus Jakarta Sans, componentes base.
 2. **3C** — detalhe do prestador `/prestador/[slug]`.
-3. **3A** — home (brief produto).
-4. **3B** — categoria/resultados (brief produto; pasta Stitch 02 ainda ausente).
+3. **3B** — categoria/resultados (aprovada; teste no preview).
+4. **3A** — home (brief produto; pasta Stitch `01-home` ausente no zip — usa `DESIGN.md` + brief).
 
 ## Preview (Vercel)
 
@@ -81,12 +81,33 @@ Referência visual oficial da 3C: `design-stitch/guia_s_ndico_n_detalhes_do_pres
 - SEO: `canonical` limpo + `noindex` quando há query; meta description sempre presente
 - Empty state + `loading.tsx` skeleton
 
+### 3A — Home `/`
+
+- Hero com marca + busca (sem bloco admin na home; admin só no Footer)
+- BannerSlot HERO_TOP / MIDDLE — some se vazio
+- Categorias (tiles) → link para filtro ou `/categoria/[slug]`
+- **Recomendados** com `kind = 'prestador'` (utilidade só na seção própria)
+- Filtro de região só se cobertura matchable ≥ 25% (`REGION_FILTER_MIN_COVERAGE`)
+- Mobile 390 + desktop 1280; sem dados inventados (sem estrelas/anos/ratings)
+
+### Região / clean-data
+
+- Após `clean-data`, o script imprime % com bairro, cidade, ambos e matchable RJ
+- Cidade vazia + bairro na lista + DDD 21/22/24 → sugestão de `city`/`state` no review
+- Matching em runtime: igualdade + city/state; inferência DDD quando city vazia
+- Seletor de região oculto se cobertura &lt; 25% ou nenhuma região com prestadores
+
+### Cache / performance
+
+Ver `docs/PERFORMANCE-CACHE.md` (`unstable_cache`, `revalidateTag`, `connection_limit`, contagem de queries).
+
 ### Backlog (pós-3B)
 
 - Banner: campos `startDate` / `endDate` (janela de veiculação) + filtro na query pública
 - Banner: imagem mobile separada (`imageUrlMobile`) para aspect ratio 2.5:1
 - Banner: validação de dimensões no upload (admin)
 - Paginação por cursor (`cursor`/`skip` estável) em categorias muito grandes
+- Cache de `home-locations` (gate de região na home)
 
 ## Componentes base (fundação)
 
