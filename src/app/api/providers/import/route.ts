@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { revalidateCatalog } from '@/lib/catalogCache';
 import { getSessionUser } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
 
@@ -202,6 +203,7 @@ export async function POST(request: Request) {
       }
     }
 
+        revalidateCatalog('providers');
     return NextResponse.json({
       success: true,
       successCount: results.successCount,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { revalidateCatalog } from '@/lib/catalogCache';
 import { getSessionUser } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
 
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
       },
     });
 
+    revalidateCatalog('categories', 'providers');
     return NextResponse.json({ success: true, category }, { status: 201 });
   } catch (error) {
     console.error('Erro ao criar categoria:', error);

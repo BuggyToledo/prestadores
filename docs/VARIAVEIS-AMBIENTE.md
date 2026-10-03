@@ -10,7 +10,7 @@ Ordem de configuração na virada: `docs/RUNBOOK-VIRADA.md` (passo 7).
 | Variável | Production | Preview (PR #9) | Local (.env) | Obrigatória runtime |
 |---|---|---|---|---|
 | `JWT_SECRET` | Sim (≥32 chars) | Sim (≥32; pode ser chave só de preview) | Sim | **Sim** — app falha sem ela |
-| `DATABASE_URL` | Banco **novo** sem `_teste` (ex. `prestadores_v2`) | Banco `*_teste` **já migrado** | `*_teste` para scripts | Sim se `USE_REAL_PRISMA=true` |
+| `DATABASE_URL` | Banco **novo** sem `_teste` (ex. `prestadores_v2`) + `connection_limit=1` | Banco `*_teste` **já migrado** + `connection_limit=1` | `*_teste` para scripts | Sim se `USE_REAL_PRISMA=true` |
 | `USE_REAL_PRISMA` | `true` | `true` | `true` | Recomendado `true` em prod/preview |
 | `NEXT_PUBLIC_APP_URL` | URL pública do site | URL do preview Vercel (opcional mas útil) | `http://localhost:3000` | Não bloqueia boot |
 | `PRODUCTION_DATABASE_HOSTS` | Opcional (denylist) | Opcional | Opcional | Não |
@@ -24,8 +24,10 @@ Ordem de configuração na virada: `docs/RUNBOOK-VIRADA.md` (passo 7).
 1. Defina **`JWT_SECRET`** (mantenha estável entre deploys).
 2. **`USE_REAL_PRISMA`** = `true`.
 3. **`DATABASE_URL`** → banco novo (ex.: `prestadores_v2`).  
-   **Antes do merge do #9**, já aponte para v2 migrado/importado.
+   **Antes do merge do #9**, já aponte para v2 migrado/importado.  
+   Inclua `?connection_limit=1` (DreamHost: risco alto de “Too many connections” com pool serverless). Detalhes: `docs/PERFORMANCE-CACHE.md`.
 4. **`NEXT_PUBLIC_APP_URL`** → domínio final (ex.: `https://sindicone.com.br`).
+5. **Região das Functions na Vercel** → a mais próxima do MySQL DreamHost (ex. `iad1` se o host for US East).
 
 Não use nome de banco terminando em `_teste` / `_test` em Production — isso é reservado a teste e scripts de escrita.
 

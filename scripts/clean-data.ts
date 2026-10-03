@@ -22,6 +22,10 @@ import {
   splitCsvLine,
 } from '../src/lib/cleanData/engine';
 import type { CleanProviderInput } from '../src/lib/cleanData/types';
+import {
+  computeLocationCoverage,
+  suggestCityFromNeighborhoodAndDdd,
+} from '../src/lib/regions';
 
 function parseArgs(argv: string[]) {
   const args: Record<string, string | boolean> = { dryRun: true };
@@ -202,6 +206,21 @@ Dry-run é o padrão. --apply só com --from-review e banco *_test/_teste.`);
   }
 
   console.log(`Prestadores lidos: ${providers.length}`);
+
+  // Métrica pós-extração (bairro/cidade preenchidos no input atual)
+  const coverage = computeLocationCoverage(providers);
+  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+  console.log('--- Cobertura de localização ---');
+  console.log(`  Com bairro:     ${coverage.withNeighborhood}/${coverage.total} (${pct(coverage.pctNeighborhood)})`);
+  console.log(`  Com cidade:     ${coverage.withCity}/${coverage.total} (${pct(coverage.pctCity)})`);
+  console.log(`  Com ambos:      ${coverage.withBoth}/${coverage.total} (${pct(coverage.pctBoth)})`);
+  console.log(`  Matchable RJ:   ${coverage.matchable}/${coverage.total} (${pct(coverage.pctMatchable)})`);
+  let inferred = 0;
+  for (const p of providers) {
+    if (suggestCityFromNeighborhoodAndDdd(p)) inferred++;
+  }
+  console.log(`  Inferíveis DDD: ${inferred} (bairro na lista + DDD 21/22/24, city vazia)`);
+
   const review = buildReviewRows(providers);
   const outDir = path.join(process.cwd(), 'reports');
   fs.mkdirSync(outDir, { recursive: true });
