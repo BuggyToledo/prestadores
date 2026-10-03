@@ -70,11 +70,13 @@ Referência visual oficial da 3C: `design-stitch/guia_s_ndico_n_detalhes_do_pres
 
 - Header: ícone + nome + “N prestadores” + descrição
 - Filtros sticky (URL): busca, Bairro/Região, ordenação Nome A–Z / Mais recentes
-- Chips removíveis dos filtros ativos
+- Chips removíveis dos filtros ativos (`aria-label` “Remover filtro …”)
+- Seletor de região: só regiões com prestadores na categoria (`src/lib/regions.ts`)
 - Sem filtros de nota, preço, 24h ou NF-e
 - Cards `variant="results"`: iniciais, subcategoria, bairro, Destaque opcional, WA + ícone telefone
-- Card nativo Publicidade (banner MIDDLE) inserido 1× na lista
-- “Carregar mais” (`?mais=`)
+- Publicidade nativa: só se banner MIDDLE `isActive` + `imageUrl` (sem placeholder; schema sem período)
+- “Carregar mais” (`?mais=`) server-side, sort estável com desempate `id`
+- SEO: `canonical` limpo + `noindex` quando há query de filtro/ordenação/página
 - Empty state + `loading.tsx` skeleton
 
 ## Componentes base (fundação)

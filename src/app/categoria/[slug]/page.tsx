@@ -1,12 +1,18 @@
 import React, { Suspense } from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { ProviderCard } from '@/components/ProviderCard';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { CategoryFilters } from '@/components/CategoryFilters';
 import { SponsoredInlineCard } from '@/components/SponsoredInlineCard';
-import { findHomeRegion } from '@/lib/regions';
+import {
+  findHomeRegion,
+  regionFilterOr,
+  regionsPresentInLocations,
+  type HomeRegionId,
+} from '@/lib/regions';
 import { ArrowLeft, Search } from 'lucide-react';
 
 interface PageProps {
@@ -22,8 +28,41 @@ interface PageProps {
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 12;
-/** Inserir publicidade após o N-ésimo card (1-based index na lista). */
+/** Inserir publicidade após o N-ésimo card (1-based), só se houver banner ativo. */
 const SPONSOR_AFTER = 3;
+
+const kindFilter = { kind: { not: 'utilidade_publica' as const } };
+
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const sp = await searchParams;
+  const category = await prisma.category.findUnique({
+    where: { slug },
+    select: { name: true, description: true },
+  });
+
+  if (!category) {
+    return { title: 'Categoria não encontrada' };
+  }
+
+  const hasVariant = Boolean(
+    (sp.q && sp.q.trim()) || sp.regiao || (sp.ordenacao && sp.ordenacao !== 'nome') || sp.mais
+  );
+  const canonicalPath = `/categoria/${slug}`;
+
+  return {
+    title: `${category.name} | Guia Síndico Né!`,
+    description:
+      category.description ||
+      `Prestadores de ${category.name} cadastrados para síndicos — contato direto no WhatsApp.`,
+    alternates: {
+      canonical: canonicalPath,
+    },
+    robots: hasVariant
+      ? { index: false, follow: true }
+      : { index: true, follow: true },
+  };
+}
 
 export default async function CategoryPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
@@ -50,22 +89,15 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     notFound();
   }
 
-  // Exclui utilidade_publica; kind ausente/null/prestador entram (Prisma: kind: { not: ... })
+  // Exclui utilidade_publica; kind ausente/null/prestador entram
   const andParts: Record<string, unknown>[] = [
     { isActive: true },
     { categoryId: category.id },
-    { kind: { not: 'utilidade_publica' } },
+    kindFilter,
   ];
 
   if (region) {
-    const neighborhoodOr = region.neighborhoods.map((n) => ({
-      neighborhood: { contains: n },
-    }));
-    const cityOr =
-      'cities' in region && region.cities
-        ? region.cities.map((c) => ({ city: { contains: c } }))
-        : [];
-    andParts.push({ OR: [...neighborhoodOr, ...cityOr] });
+    andParts.push({ OR: regionFilterOr(region) });
   }
 
   if (q) {
@@ -82,17 +114,19 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   }
 
   const where = { AND: andParts };
+  // Ordenação estável: desempate por id evita repetição/saltos no "Carregar mais"
   const orderBy =
     ordenacao === 'recentes'
-      ? [{ createdAt: 'desc' as const }]
-      : [{ isFeatured: 'desc' as const }, { name: 'asc' as const }];
+      ? [{ createdAt: 'desc' as const }, { id: 'asc' as const }]
+      : [{ isFeatured: 'desc' as const }, { name: 'asc' as const }, { id: 'asc' as const }];
 
   let providers: Awaited<ReturnType<typeof prisma.provider.findMany>> = [];
   let total = 0;
   let banners: Awaited<ReturnType<typeof prisma.banner.findMany>> = [];
+  let locationRows: Array<{ neighborhood: string | null; city: string }> = [];
 
   try {
-    [total, providers, banners] = await Promise.all([
+    [total, providers, banners, locationRows] = await Promise.all([
       prisma.provider.count({ where: where as never }),
       prisma.provider.findMany({
         where: where as never,
@@ -100,10 +134,19 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         orderBy: orderBy as never,
         take: mais,
       }),
+      // Publicidade: só banner MIDDLE ativo com imagem. Schema sem janela de datas.
       prisma.banner.findMany({
         where: { isActive: true, position: 'MIDDLE' },
         orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
         take: 1,
+      }),
+      prisma.provider.findMany({
+        where: {
+          isActive: true,
+          categoryId: category.id,
+          ...kindFilter,
+        } as never,
+        select: { neighborhood: true, city: true },
       }),
     ]);
   } catch {
@@ -118,7 +161,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         { neighborhood: { contains: q } },
       ];
     }
-    [total, providers, banners] = await Promise.all([
+    [total, providers, banners, locationRows] = await Promise.all([
       prisma.provider.count({ where: simpleWhere as never }),
       prisma.provider.findMany({
         where: simpleWhere as never,
@@ -131,8 +174,14 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         orderBy: [{ order: 'asc' }],
         take: 1,
       }),
+      prisma.provider.findMany({
+        where: { isActive: true, categoryId: category.id } as never,
+        select: { neighborhood: true, city: true },
+      }),
     ]);
   }
+
+  const availableRegionIds = regionsPresentInLocations(locationRows) as HomeRegionId[];
 
   const countLabel = `${category._count.providers} prestador${category._count.providers === 1 ? '' : 'es'}`;
   const hasMore = providers.length < total;
@@ -143,21 +192,22 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (ordenacao === 'recentes') moreParams.set('ordenacao', 'recentes');
   moreParams.set('mais', String(nextMais));
 
-  const sponsor = banners[0] || null;
-  const insertSponsorAt = Math.min(SPONSOR_AFTER, providers.length);
+  // Sem banner ativo + imageUrl → não renderiza nada (sem placeholder)
+  const sponsor =
+    banners.find((b) => b.isActive && b.position === 'MIDDLE' && Boolean(b.imageUrl)) || null;
+  const insertSponsorAt = sponsor ? Math.min(SPONSOR_AFTER, providers.length) : -1;
 
   return (
     <div className="min-h-screen bg-brand-surface">
       <div className="mx-auto max-w-shell px-4 pb-12 pt-4 sm:px-6 sm:pt-8">
         <Link
           href="/#categorias"
-          className="mb-4 inline-flex min-h-touch items-center gap-2 text-sm font-semibold text-brand-navy-mid hover:text-brand-amber-dark"
+          className="mb-4 inline-flex min-h-touch items-center gap-2 text-sm font-semibold text-brand-navy-mid hover:text-brand-amber-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Todas as categorias
         </Link>
 
-        {/* Header da categoria */}
         <header className="mb-2 flex flex-col gap-4 rounded-card border border-brand-border bg-brand-card p-5 shadow-card sm:flex-row sm:items-start sm:p-7">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-card bg-brand-amber-light text-brand-amber-dark sm:h-20 sm:w-20">
             <CategoryIcon name={category.icon} className="h-9 w-9 sm:h-11 sm:w-11" aria-hidden />
@@ -182,11 +232,11 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         </header>
 
         <Suspense fallback={null}>
-          <CategoryFilters categorySlug={slug} />
+          <CategoryFilters categorySlug={slug} availableRegionIds={availableRegionIds} />
         </Suspense>
 
         <div className="mt-6 mb-4 flex items-center justify-between gap-2">
-          <p className="text-sm text-brand-muted">
+          <p className="text-sm text-brand-muted" aria-live="polite">
             {total === 0
               ? 'Nenhum resultado'
               : `${Math.min(providers.length, total)} de ${total.toLocaleString('pt-BR')} resultado${total === 1 ? '' : 's'}`}
@@ -212,7 +262,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
               <div className="mt-10 text-center">
                 <Link
                   href={`/categoria/${slug}?${moreParams.toString()}`}
-                  className="inline-flex min-h-touch items-center justify-center rounded-control border-2 border-brand-amber bg-brand-card px-8 text-sm font-bold text-brand-navy shadow-card hover:bg-brand-amber-light"
+                  className="inline-flex min-h-touch items-center justify-center rounded-control border-2 border-brand-amber bg-brand-card px-8 text-sm font-bold text-brand-navy shadow-card hover:bg-brand-amber-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber"
                 >
                   Carregar mais
                 </Link>
@@ -230,7 +280,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             </p>
             <Link
               href={`/categoria/${slug}`}
-              className="mt-5 inline-flex min-h-touch items-center justify-center rounded-control bg-brand-amber px-4 text-sm font-bold text-brand-navy"
+              className="mt-5 inline-flex min-h-touch items-center justify-center rounded-control bg-brand-amber px-4 text-sm font-bold text-brand-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy"
             >
               Limpar filtros
             </Link>

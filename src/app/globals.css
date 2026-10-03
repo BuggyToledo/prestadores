@@ -49,8 +49,9 @@ body {
 }
 
 @layer utilities {
+  /* BottomNav ≈ 48–64px + safe-area; folga para 360/390 sem cobrir CTAs */
   .pb-nav {
-    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
   }
 
   @media (min-width: 768px) {

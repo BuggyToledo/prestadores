@@ -13,6 +13,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://guiasindico.com.br'),
   title: 'Guia Síndico Né! | Catálogo de Prestadores de Serviços',
   description:
     'Encontre prestadores de serviços cadastrados para o seu condomínio: manutenção, obras, limpeza, segurança e utilidade pública.',

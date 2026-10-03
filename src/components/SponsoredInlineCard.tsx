@@ -8,9 +8,13 @@ type Props = {
   className?: string;
 };
 
-/** Card nativo de publicidade inserido uma vez na listagem. */
+/**
+ * Card nativo de publicidade (1× na listagem).
+ * Sem banner ativo + imageUrl → null (sem placeholder/texto).
+ */
 export function SponsoredInlineCard({ banner, className }: Props) {
-  if (!banner.imageUrl) return null;
+  if (!banner?.isActive || !banner.imageUrl) return null;
+  if (banner.position && banner.position !== 'MIDDLE') return null;
   const safeLink = isSafeHttpUrl(banner.linkUrl) ? banner.linkUrl : null;
 
   const inner = (

@@ -3,7 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { FormEvent, useState, useTransition } from 'react';
 import { Search, MapPin, ArrowUpDown, X } from 'lucide-react';
-import { HOME_REGIONS } from '@/lib/regions';
+import { HOME_REGIONS, type HomeRegionId } from '@/lib/regions';
 import { cn } from '@/lib/utils';
 
 const SORT_OPTIONS = [
@@ -13,10 +13,12 @@ const SORT_OPTIONS = [
 
 type Props = {
   categorySlug: string;
+  /** Só regiões com prestadores nesta categoria (ids de HOME_REGIONS). */
+  availableRegionIds?: readonly HomeRegionId[] | readonly string[];
   className?: string;
 };
 
-export function CategoryFilters({ categorySlug, className }: Props) {
+export function CategoryFilters({ categorySlug, availableRegionIds, className }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -29,6 +31,10 @@ export function CategoryFilters({ categorySlug, className }: Props) {
   const [q, setQ] = useState(q0);
   const [regiao, setRegiao] = useState(regiao0);
   const [sort, setSort] = useState(sort0);
+
+  const regionOptions = HOME_REGIONS.filter((r) =>
+    availableRegionIds ? availableRegionIds.includes(r.id) : true
+  );
 
   const pushParams = (next: { q?: string; regiao?: string; ordenacao?: string; clearKey?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -67,18 +73,30 @@ export function CategoryFilters({ categorySlug, className }: Props) {
     pushParams({ q, regiao, ordenacao: sort });
   };
 
-  const chips: Array<{ key: string; label: string }> = [];
-  if (q0) chips.push({ key: 'q', label: `Busca: ${q0}` });
+  const chips: Array<{ key: string; label: string; removeLabel: string }> = [];
+  if (q0) {
+    chips.push({ key: 'q', label: `Busca: ${q0}`, removeLabel: `Remover filtro ${q0}` });
+  }
   if (regiao0) {
     const regionLabel = HOME_REGIONS.find((r) => r.id === regiao0)?.label || regiao0;
-    chips.push({ key: 'regiao', label: `Região: ${regionLabel}` });
+    chips.push({
+      key: 'regiao',
+      label: `Região: ${regionLabel}`,
+      removeLabel: `Remover filtro ${regionLabel}`,
+    });
   }
-  if (sort0 === 'recentes') chips.push({ key: 'ordenacao', label: 'Mais recentes' });
+  if (sort0 === 'recentes') {
+    chips.push({
+      key: 'ordenacao',
+      label: 'Mais recentes',
+      removeLabel: 'Remover filtro Mais recentes',
+    });
+  }
 
   return (
     <div
       className={cn(
-        'sticky top-16 z-30 -mx-4 border-b border-brand-border bg-brand-card/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6',
+        'sticky top-16 z-30 -mx-4 max-h-[min(42vh,20rem)] overflow-y-auto border-b border-brand-border bg-brand-card/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:max-h-none sm:overflow-visible sm:px-6',
         isPending && 'opacity-80',
         className
       )}
@@ -93,7 +111,10 @@ export function CategoryFilters({ categorySlug, className }: Props) {
           <label htmlFor="cat-q" className="sr-only">
             Buscar nesta categoria
           </label>
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-dark" aria-hidden />
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-dark"
+            aria-hidden
+          />
           <input
             id="cat-q"
             type="search"
@@ -108,10 +129,13 @@ export function CategoryFilters({ categorySlug, className }: Props) {
           <label htmlFor="cat-regiao" className="sr-only">
             Bairro/Região
           </label>
-          <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-dark" aria-hidden />
+          <MapPin
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-dark"
+            aria-hidden
+          />
           <select
             id="cat-regiao"
-            value={regiao}
+            value={regionOptions.some((r) => r.id === regiao) ? regiao : ''}
             onChange={(e) => {
               setRegiao(e.target.value);
               pushParams({ q, regiao: e.target.value, ordenacao: sort });
@@ -119,7 +143,7 @@ export function CategoryFilters({ categorySlug, className }: Props) {
             className="min-h-touch w-full appearance-none rounded-control border border-brand-border bg-brand-surface py-2.5 pl-10 pr-8 text-sm font-medium text-brand-navy focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber"
           >
             <option value="">Bairro/Região</option>
-            {HOME_REGIONS.map((r) => (
+            {regionOptions.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.label}
               </option>
@@ -131,7 +155,10 @@ export function CategoryFilters({ categorySlug, className }: Props) {
           <label htmlFor="cat-sort" className="sr-only">
             Ordenar
           </label>
-          <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-dark" aria-hidden />
+          <ArrowUpDown
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-dark"
+            aria-hidden
+          />
           <select
             id="cat-sort"
             value={sort}
@@ -152,7 +179,7 @@ export function CategoryFilters({ categorySlug, className }: Props) {
         <div className="md:col-span-2">
           <button
             type="submit"
-            className="inline-flex min-h-touch w-full items-center justify-center rounded-control bg-brand-amber px-4 text-sm font-bold text-brand-navy hover:bg-brand-amber-dark"
+            className="inline-flex min-h-touch w-full items-center justify-center rounded-control bg-brand-amber px-4 text-sm font-bold text-brand-navy hover:bg-brand-amber-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy"
           >
             Filtrar
           </button>
@@ -160,17 +187,20 @@ export function CategoryFilters({ categorySlug, className }: Props) {
       </form>
 
       {chips.length > 0 ? (
-        <div className="mx-auto mt-3 flex max-w-shell flex-wrap items-center gap-2" aria-label="Filtros ativos">
+        <div
+          className="mx-auto mt-3 flex max-w-shell flex-wrap items-center gap-2"
+          aria-label="Filtros ativos"
+        >
           {chips.map((chip) => (
             <button
               key={chip.key}
               type="button"
               onClick={() => pushParams({ clearKey: chip.key })}
-              className="inline-flex min-h-touch items-center gap-1.5 rounded-full bg-brand-amber-light px-3 py-1.5 text-xs font-bold text-brand-navy hover:bg-brand-amber"
+              aria-label={chip.removeLabel}
+              className="inline-flex min-h-touch items-center gap-1.5 rounded-full bg-brand-amber-light px-3 py-1.5 text-xs font-bold text-brand-navy hover:bg-brand-amber focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber"
             >
               {chip.label}
               <X className="h-3.5 w-3.5" aria-hidden />
-              <span className="sr-only">Remover filtro</span>
             </button>
           ))}
           <button
@@ -181,7 +211,7 @@ export function CategoryFilters({ categorySlug, className }: Props) {
               setSort('nome');
               startTransition(() => router.push(pathname));
             }}
-            className="text-xs font-bold text-brand-muted underline-offset-2 hover:text-brand-navy hover:underline"
+            className="min-h-touch text-xs font-bold text-brand-muted underline-offset-2 hover:text-brand-navy hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber"
           >
             Limpar tudo
           </button>

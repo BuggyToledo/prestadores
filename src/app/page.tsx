@@ -5,7 +5,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { ProviderCard } from '@/components/ProviderCard';
 import { CategoryTile } from '@/components/CategoryTile';
 import { BannerSlot } from '@/components/BannerSlot';
-import { findHomeRegion } from '@/lib/regions';
+import { findHomeRegion, regionFilterOr } from '@/lib/regions';
 import {
   MessageCircle,
   Search,
@@ -72,14 +72,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   }
 
   if (region) {
-    const neighborhoodOr = region.neighborhoods.map((n) => ({
-      neighborhood: { contains: n },
-    }));
-    const cityOr =
-      'cities' in region && region.cities
-        ? region.cities.map((c) => ({ city: { contains: c } }))
-        : [];
-    andParts.push({ OR: [...neighborhoodOr, ...cityOr] });
+    andParts.push({ OR: regionFilterOr(region) });
   }
 
   if (q.trim()) {
