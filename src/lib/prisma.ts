@@ -612,7 +612,11 @@ function matchesWhere(item: any, where: any, dbRef: MockDatabase): boolean {
       continue;
     }
 
-    const itemVal = item[key];
+    // Schema default: kind ausente no mock = prestador (igual MySQL DEFAULT)
+    let itemVal = item[key];
+    if (key === 'kind' && (itemVal == null || itemVal === '')) {
+      itemVal = 'prestador';
+    }
 
     if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
       if ('contains' in value) {

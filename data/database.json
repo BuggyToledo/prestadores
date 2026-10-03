@@ -219,7 +219,8 @@
       "viewsCount": 142,
       "categoryId": "cat_eletricistas",
       "createdAt": "2024-01-10T10:00:00.000Z",
-      "updatedAt": "2024-01-10T10:00:00.000Z"
+      "updatedAt": "2024-01-10T10:00:00.000Z",
+      "kind": "prestador"
     },
     {
       "id": "prov_sos_agua_limpa",
@@ -245,7 +246,8 @@
       "viewsCount": 98,
       "categoryId": "cat_encanadores",
       "createdAt": "2024-01-12T11:00:00.000Z",
-      "updatedAt": "2024-01-12T11:00:00.000Z"
+      "updatedAt": "2024-01-12T11:00:00.000Z",
+      "kind": "prestador"
     },
     {
       "id": "prov_arte_cor",
@@ -271,7 +273,8 @@
       "viewsCount": 65,
       "categoryId": "cat_pintores",
       "createdAt": "2024-01-15T09:30:00.000Z",
-      "updatedAt": "2024-01-15T09:30:00.000Z"
+      "updatedAt": "2024-01-15T09:30:00.000Z",
+      "kind": "prestador"
     },
     {
       "id": "prov_climafrio",
@@ -297,7 +300,8 @@
       "viewsCount": 112,
       "categoryId": "cat_ar_condicionado",
       "createdAt": "2024-01-18T14:15:00.000Z",
-      "updatedAt": "2024-01-18T14:15:00.000Z"
+      "updatedAt": "2024-01-18T14:15:00.000Z",
+      "kind": "prestador"
     },
     {
       "id": "prov_chaveiro_express",
@@ -323,7 +327,8 @@
       "viewsCount": 77,
       "categoryId": "cat_chaveiros",
       "createdAt": "2024-01-20T16:00:00.000Z",
-      "updatedAt": "2024-01-20T16:00:00.000Z"
+      "updatedAt": "2024-01-20T16:00:00.000Z",
+      "kind": "prestador"
     },
     {
       "id": "prov_studio_nobre",
@@ -349,7 +354,8 @@
       "viewsCount": 89,
       "categoryId": "cat_marcenaria",
       "createdAt": "2024-01-22T08:00:00.000Z",
-      "updatedAt": "2024-01-22T08:00:00.000Z"
+      "updatedAt": "2024-01-22T08:00:00.000Z",
+      "kind": "prestador"
     },
     {
       "id": "prov_cleanmaster",
@@ -375,7 +381,8 @@
       "viewsCount": 54,
       "categoryId": "cat_limpeza",
       "createdAt": "2024-01-25T11:45:00.000Z",
-      "updatedAt": "2024-01-25T11:45:00.000Z"
+      "updatedAt": "2024-01-25T11:45:00.000Z",
+      "kind": "prestador"
     },
     {
       "id": "prov_eletro_sem_bairro",
@@ -402,7 +409,8 @@
       "categoryId": "cat_eletricistas",
       "createdAt": "2024-01-10T10:00:00.000Z",
       "updatedAt": "2024-01-10T10:00:00.000Z",
-      "displayName": "Eletricista Sem Bairro Demo"
+      "displayName": "Eletricista Sem Bairro Demo",
+      "kind": "prestador"
     }
   ],
   "banners": [

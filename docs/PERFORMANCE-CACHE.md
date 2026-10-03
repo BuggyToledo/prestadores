@@ -21,12 +21,13 @@ Arquivo: `src/lib/catalogCache.ts`.
 
 Com `htmlLimitedBots: /.*/` (ver `next.config.js`), o HTML espera `generateMetadata` terminar → metadados no `<head>`.
 
-| Modo | TTFB (local prod, `/categoria/eletricistas`) | Observação |
+| Modo | TTFB (local prod mock, `/categoria/eletricistas`) | Observação |
 |---|---|---|
-| Streaming metadata (antes) | ~mais baixo (HTML inicia cedo) | meta description fora do `<head>` → SEO/LH falha |
-| Blocking (`/.*/`, depois) | ~mais alto (+1 round-trip metadata se não houver `cache()`) | com `cache()` a page reusa a mesma query da categoria |
+| Streaming metadata (antes) | ~7–8 ms (HTML inicia cedo) | meta description fora do `<head>` → SEO/LH falha |
+| Blocking `htmlLimitedBots: /.*/` **sem** `cache()` | +1 query de categoria no metadata | TTFB sobe com a query duplicada |
+| Blocking + React `cache()` (depois) | **~9–15 ms** (média ~12 ms, 5 amostras) | metadata no `<head>`; page reusa a mesma query |
 
-Medição local (curl `time_starttransfer`) no ambiente do agente — ver PR.
+Medição: `curl -o /dev/null -w '%{time_starttransfer}'` contra `next start` local (mock). Em produção Vercel→DreamHost o TTFB será dominado pela latência RTT + queries frias, não por estes ~12 ms.
 
 ## `DATABASE_URL` e DreamHost
 

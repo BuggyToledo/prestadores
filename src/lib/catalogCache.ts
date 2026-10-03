@@ -117,7 +117,7 @@ export const getCachedFeaturedProviders = unstable_cache(
       });
     }
   },
-  ['featured-providers-v1'],
+  ['featured-providers-v2'],
   { tags: [CACHE_TAGS.providers], revalidate: 180 }
 );
 
