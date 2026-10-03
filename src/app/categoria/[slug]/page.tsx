@@ -28,6 +28,8 @@ interface PageProps {
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 12;
+/** Teto de cards por renderização (“Carregar mais” não ultrapassa). */
+const MAX_TAKE = 200;
 /** Inserir publicidade após o N-ésimo card (1-based), só se houver banner ativo. */
 const SPONSOR_AFTER = 3;
 
@@ -49,12 +51,17 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     (sp.q && sp.q.trim()) || sp.regiao || (sp.ordenacao && sp.ordenacao !== 'nome') || sp.mais
   );
   const canonicalPath = `/categoria/${slug}`;
+  const description =
+    (category.description && category.description.trim()) ||
+    `Encontre prestadores de ${category.name} cadastrados para síndicos no Guia Síndico Né! Contato direto no WhatsApp.`;
 
   return {
     title: `${category.name} | Guia Síndico Né!`,
-    description:
-      category.description ||
-      `Prestadores de ${category.name} cadastrados para síndicos — contato direto no WhatsApp.`,
+    description,
+    openGraph: {
+      title: `${category.name} | Guia Síndico Né!`,
+      description,
+    },
     alternates: {
       canonical: canonicalPath,
     },
@@ -70,7 +77,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const q = (sp.q || '').trim();
   const regiao = sp.regiao || '';
   const ordenacao = sp.ordenacao === 'recentes' ? 'recentes' : 'nome';
-  const mais = Math.max(PAGE_SIZE, parseInt(sp.mais || String(PAGE_SIZE), 10) || PAGE_SIZE);
+  const requested = Math.max(PAGE_SIZE, parseInt(sp.mais || String(PAGE_SIZE), 10) || PAGE_SIZE);
+  const mais = Math.min(MAX_TAKE, requested);
+  const capped = requested > MAX_TAKE;
   const region = findHomeRegion(regiao);
 
   const category = await prisma.category.findUnique({
@@ -123,7 +132,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   let providers: Awaited<ReturnType<typeof prisma.provider.findMany>> = [];
   let total = 0;
   let banners: Awaited<ReturnType<typeof prisma.banner.findMany>> = [];
-  let locationRows: Array<{ neighborhood: string | null; city: string }> = [];
+  let locationRows: Array<{ neighborhood: string | null; city: string; state: string }> = [];
 
   try {
     [total, providers, banners, locationRows] = await Promise.all([
@@ -146,7 +155,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           categoryId: category.id,
           ...kindFilter,
         } as never,
-        select: { neighborhood: true, city: true },
+        select: { neighborhood: true, city: true, state: true },
       }),
     ]);
   } catch {
@@ -176,7 +185,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       }),
       prisma.provider.findMany({
         where: { isActive: true, categoryId: category.id } as never,
-        select: { neighborhood: true, city: true },
+        select: { neighborhood: true, city: true, state: true },
       }),
     ]);
   }
@@ -184,8 +193,8 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const availableRegionIds = regionsPresentInLocations(locationRows) as HomeRegionId[];
 
   const countLabel = `${category._count.providers} prestador${category._count.providers === 1 ? '' : 'es'}`;
-  const hasMore = providers.length < total;
-  const nextMais = mais + PAGE_SIZE;
+  const hasMore = providers.length < total && !capped && mais < MAX_TAKE;
+  const nextMais = Math.min(MAX_TAKE, mais + PAGE_SIZE);
   const moreParams = new URLSearchParams();
   if (q) moreParams.set('q', q);
   if (regiao) moreParams.set('regiao', regiao);
@@ -235,16 +244,22 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           <CategoryFilters categorySlug={slug} availableRegionIds={availableRegionIds} />
         </Suspense>
 
-        <div className="mt-6 mb-4 flex items-center justify-between gap-2">
+        <div className="mt-6 mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-brand-muted" aria-live="polite">
             {total === 0
               ? 'Nenhum resultado'
               : `${Math.min(providers.length, total)} de ${total.toLocaleString('pt-BR')} resultado${total === 1 ? '' : 's'}`}
           </p>
+          {capped || (providers.length >= MAX_TAKE && total > MAX_TAKE) ? (
+            <p className="text-xs text-brand-muted">
+              Exibindo no máximo {MAX_TAKE} resultados. Refine a busca ou a região.
+            </p>
+          ) : null}
         </div>
 
         {providers.length > 0 ? (
           <>
+            <h2 className="sr-only">Resultados</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {providers.map((provider, index) => (
                 <React.Fragment key={provider.id}>

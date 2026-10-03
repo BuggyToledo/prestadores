@@ -91,7 +91,7 @@ export function Footer() {
           </p>
         </div>
 
-        <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-800 pt-6 text-center text-xs text-slate-500 sm:flex-row">
+        <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-800 pt-6 text-center text-xs text-slate-300 sm:flex-row">
           <p>© {currentYear} Guia Síndico Né!. Todos os direitos reservados.</p>
           <p className="flex items-center gap-1">
             Feito com <Heart className="inline h-3.5 w-3.5 fill-red-500 text-red-500" aria-hidden />{' '}
@@ -100,7 +100,7 @@ export function Footer() {
           {/* Link discreto de admin — só no rodapé */}
           <Link
             href="/admin"
-            className="text-[11px] text-slate-600 underline-offset-2 hover:text-slate-500 hover:underline"
+            className="text-[11px] text-slate-300 underline-offset-2 hover:text-white hover:underline"
           >
             Área administrativa
           </Link>

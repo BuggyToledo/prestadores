@@ -32,7 +32,7 @@ export function SponsoredInlineCard({ banner, className }: Props) {
       <div className="relative aspect-[2.5/1] w-full md:aspect-[4/1]">
         <Image
           src={banner.imageUrl}
-          alt={banner.title || 'Publicidade'}
+          alt=""
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 1200px"
@@ -40,8 +40,10 @@ export function SponsoredInlineCard({ banner, className }: Props) {
         />
       </div>
       {banner.title ? (
-        <p className="truncate px-3 py-2 text-xs font-semibold text-white/90">{banner.title}</p>
-      ) : null}
+        <p className="truncate px-3 py-2 text-xs font-semibold text-white">{banner.title}</p>
+      ) : (
+        <p className="sr-only">Publicidade</p>
+      )}
     </div>
   );
 
@@ -52,12 +54,11 @@ export function SponsoredInlineCard({ banner, className }: Props) {
         target={banner.target === '_self' ? '_self' : '_blank'}
         rel="noopener noreferrer sponsored"
         className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber"
-        aria-label={`Publicidade: ${banner.title}`}
       >
         {inner}
       </a>
     );
   }
 
-  return <div aria-label="Publicidade">{inner}</div>;
+  return <div>{inner}</div>;
 }

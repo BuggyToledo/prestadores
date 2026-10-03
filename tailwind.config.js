@@ -10,14 +10,18 @@ module.exports = {
       colors: {
         brand: {
           amber: '#f59e0b',
+          // Hover / fundos — não usar em texto pequeno sobre branco (contraste)
           'amber-dark': '#d97706',
+          // Texto sobre branco ≥ WCAG AA 4.5:1 (~5.2:1)
+          'amber-ink': '#b45309',
           'amber-light': '#fef3c7',
           navy: '#0f172a',
           'navy-mid': '#1e293b',
           'navy-deep': '#0b132b',
-          green: '#16a34a',
-          'green-bright': '#22c55e',
-          'green-dark': '#15803d',
+          // Botão WA: fundo escuro o bastante para texto branco AA
+          green: '#15803d',
+          'green-bright': '#16a34a',
+          'green-dark': '#166534',
           surface: '#f8f9ff',
           card: '#ffffff',
           border: '#e2e8f0',

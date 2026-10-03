@@ -69,15 +69,24 @@ Referência visual oficial da 3C: `design-stitch/guia_s_ndico_n_detalhes_do_pres
 ### 3B — `/categoria/[slug]`
 
 - Header: ícone + nome + “N prestadores” + descrição
-- Filtros sticky (URL): busca, Bairro/Região, ordenação Nome A–Z / Mais recentes
-- Chips removíveis dos filtros ativos (`aria-label` “Remover filtro …”)
-- Seletor de região: só regiões com prestadores na categoria (`src/lib/regions.ts`)
+- Filtros: mobile = busca + botão “Filtros” (bottom sheet); desktop = linha completa
+- Chips removíveis (`aria-label` “Remover filtro …”)
+- Região: nomes completos + cruzamento `city`/`state` em `src/lib/regions.ts` (sem `contains` parcial)
+- Seletor de região: só regiões com prestadores na categoria
 - Sem filtros de nota, preço, 24h ou NF-e
 - Cards `variant="results"`: iniciais, subcategoria, bairro, Destaque opcional, WA + ícone telefone
 - Publicidade nativa: só se banner MIDDLE `isActive` + `imageUrl` (sem placeholder; schema sem período)
-- “Carregar mais” (`?mais=`) server-side, sort estável com desempate `id`
-- SEO: `canonical` limpo + `noindex` quando há query de filtro/ordenação/página
+- “Carregar mais” (`?mais=`): server-side, sort estável (`id`), **teto `MAX_TAKE = 200`**
+- Impacto ~1000 registros: sem teto o HTML/DOM cresceria até 1000 cards (TTI/memória ruins); com teto o usuário vê no máx. 200 e é orientado a refinar busca/região (cursor pagination fica no backlog)
+- SEO: `canonical` limpo + `noindex` quando há query; meta description sempre presente
 - Empty state + `loading.tsx` skeleton
+
+### Backlog (pós-3B)
+
+- Banner: campos `startDate` / `endDate` (janela de veiculação) + filtro na query pública
+- Banner: imagem mobile separada (`imageUrlMobile`) para aspect ratio 2.5:1
+- Banner: validação de dimensões no upload (admin)
+- Paginação por cursor (`cursor`/`skip` estável) em categorias muito grandes
 
 ## Componentes base (fundação)
 

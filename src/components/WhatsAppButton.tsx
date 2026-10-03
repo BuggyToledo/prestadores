@@ -25,7 +25,7 @@ export function WhatsAppButton({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`${label}${providerName ? ` — ${providerName}` : ''}`}
+      aria-label={label}
       className={cn(
         'inline-flex min-h-touch min-w-touch items-center justify-center gap-2 rounded-control bg-brand-green px-4 font-semibold text-white transition-colors hover:bg-brand-green-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green',
         compact ? 'px-3' : 'w-full sm:w-auto',

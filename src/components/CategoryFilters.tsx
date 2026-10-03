@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { FormEvent, useState, useTransition } from 'react';
-import { Search, MapPin, ArrowUpDown, X } from 'lucide-react';
+import { FormEvent, useEffect, useId, useState, useTransition } from 'react';
+import { Search, MapPin, ArrowUpDown, X, SlidersHorizontal } from 'lucide-react';
 import { HOME_REGIONS, type HomeRegionId } from '@/lib/regions';
 import { cn } from '@/lib/utils';
 
@@ -18,11 +18,18 @@ type Props = {
   className?: string;
 };
 
+/**
+ * Desktop: busca + região + ordenação na mesma linha.
+ * Mobile: barra compacta (busca + "Filtros") + bottom sheet — libera ~69% da viewport
+ * em 360×640 (header 64 + sticky ~72 + BottomNav ~64).
+ */
 export function CategoryFilters({ categorySlug, availableRegionIds, className }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const titleId = useId();
 
   const q0 = searchParams.get('q') || '';
   const regiao0 = searchParams.get('regiao') || '';
@@ -32,11 +39,36 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
   const [regiao, setRegiao] = useState(regiao0);
   const [sort, setSort] = useState(sort0);
 
+  useEffect(() => {
+    setQ(q0);
+    setRegiao(regiao0);
+    setSort(sort0);
+  }, [q0, regiao0, sort0]);
+
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSheetOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [sheetOpen]);
+
   const regionOptions = HOME_REGIONS.filter((r) =>
     availableRegionIds ? availableRegionIds.includes(r.id) : true
   );
 
-  const pushParams = (next: { q?: string; regiao?: string; ordenacao?: string; clearKey?: string }) => {
+  const pushParams = (next: {
+    q?: string;
+    regiao?: string;
+    ordenacao?: string;
+    clearKey?: string;
+  }) => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('mais');
 
@@ -68,9 +100,14 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
     });
   };
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmitSearch = (e: FormEvent) => {
     e.preventDefault();
     pushParams({ q, regiao, ordenacao: sort });
+  };
+
+  const applySheet = () => {
+    pushParams({ q, regiao, ordenacao: sort });
+    setSheetOpen(false);
   };
 
   const chips: Array<{ key: string; label: string; removeLabel: string }> = [];
@@ -93,26 +130,79 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
     });
   }
 
+  const sheetFiltersActive = Boolean(regiao0 || sort0 === 'recentes');
+
   return (
     <div
       className={cn(
-        'sticky top-16 z-30 -mx-4 max-h-[min(42vh,20rem)] overflow-y-auto border-b border-brand-border bg-brand-card/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:max-h-none sm:overflow-visible sm:px-6',
+        'sticky top-16 z-30 -mx-4 border-b border-brand-border bg-brand-card/95 px-4 py-2.5 backdrop-blur-md sm:-mx-6 sm:px-6 sm:py-3',
         isPending && 'opacity-80',
         className
       )}
     >
+      {/* Mobile compacto: busca + Filtros */}
       <form
-        onSubmit={onSubmit}
-        className="mx-auto grid max-w-shell grid-cols-1 gap-2 md:grid-cols-12 md:items-end"
+        onSubmit={onSubmitSearch}
+        className="mx-auto flex max-w-shell items-center gap-2 md:hidden"
+        role="search"
+        aria-label={`Buscar em ${categorySlug}`}
+      >
+        <div className="relative min-w-0 flex-1">
+          <label htmlFor="cat-q-mobile" className="sr-only">
+            Buscar nesta categoria
+          </label>
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-ink"
+            aria-hidden
+          />
+          <input
+            id="cat-q-mobile"
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar…"
+            className="min-h-touch w-full rounded-control border border-brand-border bg-brand-surface py-2 pl-10 pr-3 text-sm font-medium text-brand-navy placeholder:text-brand-muted focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber"
+          />
+        </div>
+        <button
+          type="submit"
+          className="sr-only"
+        >
+          Buscar
+        </button>
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          className={cn(
+            'inline-flex min-h-touch shrink-0 items-center gap-1.5 rounded-control border border-brand-border bg-brand-surface px-3 text-sm font-bold text-brand-navy hover:bg-brand-amber-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber',
+            sheetFiltersActive && 'border-brand-amber bg-brand-amber-light'
+          )}
+          aria-haspopup="dialog"
+          aria-expanded={sheetOpen}
+        >
+          <SlidersHorizontal className="h-4 w-4" aria-hidden />
+          Filtros
+          {sheetFiltersActive ? (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-amber px-1 text-[10px] font-extrabold text-brand-navy">
+              {[regiao0, sort0 === 'recentes'].filter(Boolean).length}
+            </span>
+          ) : null}
+        </button>
+      </form>
+
+      {/* Desktop: linha completa */}
+      <form
+        onSubmit={onSubmitSearch}
+        className="mx-auto hidden max-w-shell grid-cols-12 items-end gap-2 md:grid"
         role="search"
         aria-label={`Filtrar ${categorySlug}`}
       >
-        <div className="relative md:col-span-5">
+        <div className="relative col-span-5">
           <label htmlFor="cat-q" className="sr-only">
             Buscar nesta categoria
           </label>
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-dark"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-ink"
             aria-hidden
           />
           <input
@@ -125,12 +215,12 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
           />
         </div>
 
-        <div className="relative md:col-span-3">
+        <div className="relative col-span-3">
           <label htmlFor="cat-regiao" className="sr-only">
             Bairro/Região
           </label>
           <MapPin
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-dark"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-ink"
             aria-hidden
           />
           <select
@@ -151,12 +241,12 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
           </select>
         </div>
 
-        <div className="relative md:col-span-2">
+        <div className="relative col-span-2">
           <label htmlFor="cat-sort" className="sr-only">
             Ordenar
           </label>
           <ArrowUpDown
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-dark"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-ink"
             aria-hidden
           />
           <select
@@ -176,7 +266,7 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
           </select>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="col-span-2">
           <button
             type="submit"
             className="inline-flex min-h-touch w-full items-center justify-center rounded-control bg-brand-amber px-4 text-sm font-bold text-brand-navy hover:bg-brand-amber-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy"
@@ -188,7 +278,7 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
 
       {chips.length > 0 ? (
         <div
-          className="mx-auto mt-3 flex max-w-shell flex-wrap items-center gap-2"
+          className="mx-auto mt-2 flex max-w-shell flex-wrap items-center gap-2"
           aria-label="Filtros ativos"
         >
           {chips.map((chip) => (
@@ -215,6 +305,97 @@ export function CategoryFilters({ categorySlug, availableRegionIds, className }:
           >
             Limpar tudo
           </button>
+        </div>
+      ) : null}
+
+      {/* Bottom sheet mobile */}
+      {sheetOpen ? (
+        <div className="fixed inset-0 z-50 md:hidden" role="presentation">
+          <button
+            type="button"
+            className="absolute inset-0 bg-brand-navy/50"
+            aria-label="Fechar filtros"
+            onClick={() => setSheetOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-brand-border bg-brand-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] shadow-lift"
+          >
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 id={titleId} className="text-lg font-extrabold text-brand-navy">
+                Filtros
+              </h2>
+              <button
+                type="button"
+                onClick={() => setSheetOpen(false)}
+                className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-full text-brand-muted hover:bg-brand-amber-light hover:text-brand-navy"
+                aria-label="Fechar"
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="sheet-regiao" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-brand-muted">
+                  Bairro/Região
+                </label>
+                <div className="relative">
+                  <MapPin
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-ink"
+                    aria-hidden
+                  />
+                  <select
+                    id="sheet-regiao"
+                    value={regionOptions.some((r) => r.id === regiao) ? regiao : ''}
+                    onChange={(e) => setRegiao(e.target.value)}
+                    className="min-h-touch w-full appearance-none rounded-control border border-brand-border bg-brand-surface py-2.5 pl-10 pr-8 text-sm font-medium text-brand-navy focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber"
+                  >
+                    <option value="">Todas as regiões</option>
+                    {regionOptions.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="sheet-sort" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-brand-muted">
+                  Ordenação
+                </label>
+                <div className="relative">
+                  <ArrowUpDown
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-amber-ink"
+                    aria-hidden
+                  />
+                  <select
+                    id="sheet-sort"
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                    className="min-h-touch w-full appearance-none rounded-control border border-brand-border bg-brand-surface py-2.5 pl-10 pr-8 text-sm font-medium text-brand-navy focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber"
+                  >
+                    {SORT_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={applySheet}
+                className="inline-flex min-h-touch w-full items-center justify-center rounded-control bg-brand-amber px-4 text-sm font-bold text-brand-navy hover:bg-brand-amber-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy"
+              >
+                Aplicar filtros
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

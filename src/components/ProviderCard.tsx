@@ -100,12 +100,12 @@ export function ProviderCard({
             <h3 className="text-base font-bold leading-snug text-brand-navy">
               <Link
                 href={`/prestador/${provider.slug}`}
-                className="hover:text-brand-amber-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber"
+                className="hover:text-brand-amber-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber"
               >
                 {displayName}
               </Link>
             </h3>
-            <p className="mt-0.5 text-xs font-semibold text-brand-amber-dark">
+            <p className="mt-0.5 text-xs font-semibold text-brand-amber-ink">
               {isResults
                 ? provider.subcategory?.name || provider.category.name
                 : provider.category.name}

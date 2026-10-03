@@ -58,7 +58,7 @@ function BottomNavInner() {
                 className={cn(
                   'flex min-h-touch flex-col items-center justify-center gap-0.5 px-1 py-2 text-[11px] font-semibold transition-colors',
                   item.active
-                    ? 'text-brand-amber-dark'
+                    ? 'text-brand-amber-ink'
                     : 'text-brand-muted hover:text-brand-navy'
                 )}
                 aria-current={item.active ? 'page' : undefined}

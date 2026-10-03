@@ -21,7 +21,7 @@ export function Header() {
           </div>
           <div className="leading-tight">
             <p className="text-lg font-extrabold tracking-tight text-brand-navy">
-              Guia Síndico <span className="text-brand-amber-dark">Né!</span>
+              Guia Síndico <span className="text-brand-amber-ink">Né!</span>
             </p>
             <p className="hidden text-[10px] font-bold uppercase tracking-wider text-brand-muted sm:block">
               Prestadores para síndicos
