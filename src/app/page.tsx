@@ -62,7 +62,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   // Só prestadores na listagem principal (utilidade → /utilidade-publica)
   const kindFilter = {
     isActive: true,
-    OR: [{ kind: 'prestador' as const }, { kind: null }],
+    kind: { not: 'utilidade_publica' as const },
   };
 
   const andParts: Record<string, unknown>[] = [];
