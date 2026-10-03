@@ -1,19 +1,38 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { ProviderCard } from '@/components/ProviderCard';
 import { CategoryIcon } from '@/components/CategoryIcon';
-import { ArrowLeft, Search, Filter } from 'lucide-react';
+import { CategoryFilters } from '@/components/CategoryFilters';
+import { SponsoredInlineCard } from '@/components/SponsoredInlineCard';
+import { findHomeRegion } from '@/lib/regions';
+import { ArrowLeft, Search } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{
+    q?: string;
+    regiao?: string;
+    ordenacao?: string;
+    mais?: string;
+  }>;
 }
 
 export const dynamic = 'force-dynamic';
 
-export default async function CategoryPage({ params }: PageProps) {
+const PAGE_SIZE = 12;
+/** Inserir publicidade após o N-ésimo card (1-based index na lista). */
+const SPONSOR_AFTER = 3;
+
+export default async function CategoryPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const sp = await searchParams;
+  const q = (sp.q || '').trim();
+  const regiao = sp.regiao || '';
+  const ordenacao = sp.ordenacao === 'recentes' ? 'recentes' : 'nome';
+  const mais = Math.max(PAGE_SIZE, parseInt(sp.mais || String(PAGE_SIZE), 10) || PAGE_SIZE);
+  const region = findHomeRegion(regiao);
 
   const category = await prisma.category.findUnique({
     where: { slug },
@@ -21,13 +40,8 @@ export default async function CategoryPage({ params }: PageProps) {
       subcategories: {
         orderBy: [{ order: 'asc' }, { name: 'asc' }],
       },
-      providers: {
-        where: { isActive: true },
-        orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
-        include: {
-          category: true,
-          subcategory: true,
-        },
+      _count: {
+        select: { providers: { where: { isActive: true } } },
       },
     },
   });
@@ -36,89 +50,188 @@ export default async function CategoryPage({ params }: PageProps) {
     notFound();
   }
 
+  const andParts: Record<string, unknown>[] = [
+    { isActive: true },
+    { categoryId: category.id },
+    { OR: [{ kind: 'prestador' }, { kind: null }] },
+  ];
+
+  if (region) {
+    const neighborhoodOr = region.neighborhoods.map((n) => ({
+      neighborhood: { contains: n },
+    }));
+    const cityOr =
+      'cities' in region && region.cities
+        ? region.cities.map((c) => ({ city: { contains: c } }))
+        : [];
+    andParts.push({ OR: [...neighborhoodOr, ...cityOr] });
+  }
+
+  if (q) {
+    andParts.push({
+      OR: [
+        { name: { contains: q } },
+        { description: { contains: q } },
+        { services: { contains: q } },
+        { neighborhood: { contains: q } },
+        { city: { contains: q } },
+        { subcategory: { name: { contains: q } } },
+      ],
+    });
+  }
+
+  const where = { AND: andParts };
+  const orderBy =
+    ordenacao === 'recentes'
+      ? [{ createdAt: 'desc' as const }]
+      : [{ isFeatured: 'desc' as const }, { name: 'asc' as const }];
+
+  let providers: Awaited<ReturnType<typeof prisma.provider.findMany>> = [];
+  let total = 0;
+  let banners: Awaited<ReturnType<typeof prisma.banner.findMany>> = [];
+
+  try {
+    [total, providers, banners] = await Promise.all([
+      prisma.provider.count({ where: where as never }),
+      prisma.provider.findMany({
+        where: where as never,
+        include: { category: true, subcategory: true },
+        orderBy: orderBy as never,
+        take: mais,
+      }),
+      prisma.banner.findMany({
+        where: { isActive: true, position: 'MIDDLE' },
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+        take: 1,
+      }),
+    ]);
+  } catch {
+    const simpleWhere: Record<string, unknown> = {
+      isActive: true,
+      categoryId: category.id,
+    };
+    if (q) {
+      simpleWhere.OR = [
+        { name: { contains: q } },
+        { services: { contains: q } },
+        { neighborhood: { contains: q } },
+      ];
+    }
+    [total, providers, banners] = await Promise.all([
+      prisma.provider.count({ where: simpleWhere as never }),
+      prisma.provider.findMany({
+        where: simpleWhere as never,
+        include: { category: true, subcategory: true },
+        orderBy: orderBy as never,
+        take: mais,
+      }),
+      prisma.banner.findMany({
+        where: { isActive: true, position: 'MIDDLE' },
+        orderBy: [{ order: 'asc' }],
+        take: 1,
+      }),
+    ]);
+  }
+
+  const countLabel = `${category._count.providers} prestador${category._count.providers === 1 ? '' : 'es'}`;
+  const hasMore = providers.length < total;
+  const nextMais = mais + PAGE_SIZE;
+  const moreParams = new URLSearchParams();
+  if (q) moreParams.set('q', q);
+  if (regiao) moreParams.set('regiao', regiao);
+  if (ordenacao === 'recentes') moreParams.set('ordenacao', 'recentes');
+  moreParams.set('mais', String(nextMais));
+
+  const sponsor = banners[0] || null;
+  const insertSponsorAt = Math.min(SPONSOR_AFTER, providers.length);
+
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Breadcrumb e Voltar */}
-        <div className="mb-6">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-amber-600 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Voltar para todas as categorias</span>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-brand-surface">
+      <div className="mx-auto max-w-shell px-4 pb-12 pt-4 sm:px-6 sm:pt-8">
+        <Link
+          href="/#categorias"
+          className="mb-4 inline-flex min-h-touch items-center gap-2 text-sm font-semibold text-brand-navy-mid hover:text-brand-amber-dark"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          Todas as categorias
+        </Link>
 
-        {/* Header da Categoria */}
-        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-amber-200/90 shadow-sm mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 shadow-inner">
-              <CategoryIcon name={category.icon} className="w-9 h-9 sm:w-11 sm:h-11" />
-            </div>
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md">
-                Categoria de Serviços
+        {/* Header da categoria */}
+        <header className="mb-2 flex flex-col gap-4 rounded-card border border-brand-border bg-brand-card p-5 shadow-card sm:flex-row sm:items-start sm:p-7">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-card bg-brand-amber-light text-brand-amber-dark sm:h-20 sm:w-20">
+            <CategoryIcon name={category.icon} className="h-9 w-9 sm:h-11 sm:w-11" aria-hidden />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl">
+              {category.name}
+              <span className="mt-1 block text-base font-semibold text-brand-muted sm:mt-0 sm:ml-2 sm:inline sm:text-lg">
+                · {countLabel}
               </span>
-              <h1 className="text-2xl sm:text-4xl font-black text-slate-900 mt-1 tracking-tight">
-                {category.name}
-              </h1>
-              {category.description && (
-                <p className="text-sm sm:text-base text-slate-600 mt-2 max-w-2xl leading-relaxed">
-                  {category.description}
-                </p>
-              )}
-
-              {/* Badges de Subcategorias */}
-              {category.subcategories && category.subcategories.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-slate-100">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Especialidades:
-                  </span>
-                  {category.subcategories.map((sub) => (
-                    <span
-                      key={sub.id}
-                      className="bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold px-2.5 py-1 rounded-lg"
-                    >
-                      {sub.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+            </h1>
+            {category.description ? (
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-brand-navy-mid">
+                {category.description}
+              </p>
+            ) : (
+              <p className="mt-2 text-sm text-brand-muted">
+                Prestadores cadastrados nesta categoria — contato direto no WhatsApp.
+              </p>
+            )}
           </div>
+        </header>
 
-          <div className="bg-slate-50 px-5 py-3 rounded-2xl border border-slate-200 text-center shrink-0">
-            <span className="text-2xl font-black text-slate-900 block">
-              {category.providers.length}
-            </span>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Profissionais Ativos
-            </span>
-          </div>
+        <Suspense fallback={null}>
+          <CategoryFilters categorySlug={slug} />
+        </Suspense>
+
+        <div className="mt-6 mb-4 flex items-center justify-between gap-2">
+          <p className="text-sm text-brand-muted">
+            {total === 0
+              ? 'Nenhum resultado'
+              : `${Math.min(providers.length, total)} de ${total.toLocaleString('pt-BR')} resultado${total === 1 ? '' : 's'}`}
+          </p>
         </div>
 
-        {/* Listagem de Prestadores da Categoria */}
-        {category.providers.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {category.providers.map((provider) => (
-              <ProviderCard key={provider.id} provider={provider} />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-xl mx-auto">
-            <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8" />
+        {providers.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {providers.map((provider, index) => (
+                <React.Fragment key={provider.id}>
+                  <ProviderCard provider={provider as never} variant="results" forceInitials />
+                  {sponsor && index + 1 === insertSponsorAt ? (
+                    <div className="md:col-span-3">
+                      <SponsoredInlineCard banner={sponsor} />
+                    </div>
+                  ) : null}
+                </React.Fragment>
+              ))}
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Nenhum prestador nesta categoria</h3>
-            <p className="text-sm text-slate-600 mb-6">
-              Ainda não temos profissionais cadastrados para {category.name}. Em breve adicionaremos novos prestadores.
+
+            {hasMore ? (
+              <div className="mt-10 text-center">
+                <Link
+                  href={`/categoria/${slug}?${moreParams.toString()}`}
+                  className="inline-flex min-h-touch items-center justify-center rounded-control border-2 border-brand-amber bg-brand-card px-8 text-sm font-bold text-brand-navy shadow-card hover:bg-brand-amber-light"
+                >
+                  Carregar mais
+                </Link>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="rounded-card border border-dashed border-brand-border bg-brand-card p-10 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-amber-light text-brand-amber-dark">
+              <Search className="h-7 w-7" aria-hidden />
+            </div>
+            <h2 className="text-lg font-bold text-brand-navy">Nenhum prestador encontrado</h2>
+            <p className="mt-2 text-sm text-brand-muted">
+              Nenhum prestador encontrado. Tente outro bairro.
             </p>
             <Link
-              href="/"
-              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm transition-all"
+              href={`/categoria/${slug}`}
+              className="mt-5 inline-flex min-h-touch items-center justify-center rounded-control bg-brand-amber px-4 text-sm font-bold text-brand-navy"
             >
-              Explorar outras categorias
+              Limpar filtros
             </Link>
           </div>
         )}

@@ -7,8 +7,8 @@ PR separado. **Sem merge** até aprovação tela a tela.
 
 1. **Fundação** — tokens, Plus Jakarta Sans, componentes base.
 2. **3C** — detalhe do prestador `/prestador/[slug]`.
-3. **3A** — home (brief aprovado pelo produto; pastas Stitch 01/02 ainda ausentes).
-4. **3B** — categoria/resultados — aguardando `design-stitch/02-resultados/`.
+3. **3A** — home (brief produto).
+4. **3B** — categoria/resultados (brief produto; pasta Stitch 02 ainda ausente).
 
 ## Preview (Vercel)
 
@@ -44,7 +44,7 @@ O filtro `kind = 'prestador'` / rota `/utilidade-publica` só tem efeito complet
 | Tela | Status no `design-stitch/` |
 |---|---|
 | 01-home-mobile | Brief textual aprovado → home implementada em 3A |
-| 02-resultados | **Ausente** — aguardando upload (3B pausada) |
+| 02-resultados | Brief textual → `/categoria/[slug]` implementada (3B) |
 | 03-detalhe | Presente (`guia_s_ndico_n_detalhes_do_prestador/screen.png`) |
 | 04 orçamento | Fora do escopo desta fase |
 | 05 admin | Fora do escopo desta fase |
@@ -65,6 +65,17 @@ Referência visual oficial da 3C: `design-stitch/guia_s_ndico_n_detalhes_do_pres
 | Sticky WA + telefone | Mantido (mobile); desktop no header do perfil | Alinha ao print com dados reais |
 | Ícone favoritar / compartilhar / avatar user no topo | Removido (Favoritos = Fase 2) | Escopo |
 | Material Symbols | Lucide React | Stack do projeto |
+
+### 3B — `/categoria/[slug]`
+
+- Header: ícone + nome + “N prestadores” + descrição
+- Filtros sticky (URL): busca, Bairro/Região, ordenação Nome A–Z / Mais recentes
+- Chips removíveis dos filtros ativos
+- Sem filtros de nota, preço, 24h ou NF-e
+- Cards `variant="results"`: iniciais, subcategoria, bairro, Destaque opcional, WA + ícone telefone
+- Card nativo Publicidade (banner MIDDLE) inserido 1× na lista
+- “Carregar mais” (`?mais=`)
+- Empty state + `loading.tsx` skeleton
 
 ## Componentes base (fundação)
 

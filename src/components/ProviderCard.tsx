@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { MapPin, Clock, Receipt, Star } from 'lucide-react';
+import { MapPin, Star } from 'lucide-react';
 import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { TrustBadge } from '@/components/TrustBadge';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
@@ -49,16 +49,25 @@ export interface ProviderItem {
 
 interface ProviderCardProps {
   provider: ProviderItem;
-  /** Home: avatar só com iniciais (sem foto), conforme brief. */
+  /** Home/lista: avatar só com iniciais. */
   forceInitials?: boolean;
+  /**
+   * results = categoria: só badge Destaque, subcategoria, WA + ícone telefone.
+   * default = home: pode mostrar TrustBadge / 24h / NF-e.
+   */
+  variant?: 'default' | 'results';
   className?: string;
 }
 
-export function ProviderCard({ provider, forceInitials = false, className }: ProviderCardProps) {
+export function ProviderCard({
+  provider,
+  forceInitials = false,
+  variant = 'default',
+  className,
+}: ProviderCardProps) {
   const displayName = providerDisplayName(provider);
   const location = [provider.neighborhood, provider.city].filter(Boolean).join(', ');
-  const serves24h = Boolean(provider.serves24h);
-  const issuesNfe = Boolean(provider.issuesNfe);
+  const isResults = variant === 'results';
 
   return (
     <article
@@ -73,7 +82,7 @@ export function ProviderCard({ provider, forceInitials = false, className }: Pro
           <ProviderAvatar
             name={provider.name}
             displayName={provider.displayName}
-            logoUrl={forceInitials ? null : provider.logoUrl}
+            logoUrl={forceInitials || isResults ? null : provider.logoUrl}
             categoryName={provider.category.name}
             categoryIcon={provider.category.icon}
             size="md"
@@ -86,19 +95,7 @@ export function ProviderCard({ provider, forceInitials = false, className }: Pro
                   Destaque
                 </span>
               ) : null}
-              {serves24h ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                  <Clock className="h-3 w-3" aria-hidden />
-                  Atende 24h
-                </span>
-              ) : null}
-              {issuesNfe ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-brand-navy">
-                  <Receipt className="h-3 w-3" aria-hidden />
-                  Emite NF-e
-                </span>
-              ) : null}
-              <TrustBadge trustTier={provider.trustTier} className="!min-h-0 py-0.5 text-[10px]" />
+              {!isResults ? <TrustBadge trustTier={provider.trustTier} className="!min-h-0 py-0.5 text-[10px]" /> : null}
             </div>
             <h3 className="text-base font-bold leading-snug text-brand-navy">
               <Link
@@ -109,7 +106,9 @@ export function ProviderCard({ provider, forceInitials = false, className }: Pro
               </Link>
             </h3>
             <p className="mt-0.5 text-xs font-semibold text-brand-amber-dark">
-              {provider.category.name}
+              {isResults
+                ? provider.subcategory?.name || provider.category.name
+                : provider.category.name}
             </p>
           </div>
         </div>
@@ -122,21 +121,23 @@ export function ProviderCard({ provider, forceInitials = false, className }: Pro
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-brand-border bg-brand-surface/80 p-3 sm:p-4">
+      <div className="flex items-stretch gap-2 border-t border-brand-border bg-brand-surface/80 p-3 sm:p-4">
         <WhatsAppButton
           whatsapp={provider.whatsapp}
           providerName={displayName}
-          className="w-full"
+          className="min-w-0 flex-1"
         />
-        {!provider.whatsapp && provider.phone ? (
-          <PhoneButton phone={provider.phone} className="w-full" />
+        {provider.phone ? (
+          <PhoneButton phone={provider.phone} compact className="shrink-0" />
         ) : null}
-        <Link
-          href={`/prestador/${provider.slug}`}
-          className="inline-flex min-h-touch items-center justify-center text-xs font-bold text-brand-navy-mid hover:text-brand-amber-dark"
-        >
-          Ver perfil
-        </Link>
+        {!provider.whatsapp && !provider.phone ? (
+          <Link
+            href={`/prestador/${provider.slug}`}
+            className="inline-flex min-h-touch flex-1 items-center justify-center rounded-control border border-brand-border text-xs font-bold text-brand-navy"
+          >
+            Ver perfil
+          </Link>
+        ) : null}
       </div>
     </article>
   );
